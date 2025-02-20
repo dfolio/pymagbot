@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools", "wheel", "versioningit"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pymagbot"
-version = "0.1.0"
+version = "0.0.1"
 description = "Modeling and control of magnetic microrobots"
 authors = [
     {name = "David FOLIO", email = "david.folio@insa-cvl.fr"}
@@ -17,3 +17,27 @@ dependencies = [
     "mkdocs",
     "mkdocstrings[python]"
 ]
+dynamic = ["version"]
+
+[tool.versioningit.vcs]
+# The method key:
+method = "git"  # <- The method name
+# Parameters to pass to the method:
+match = ["v*"]
+default-tag = "0.0.1"
+
+[tool.versioningit.next-version]
+method = "smallest"
+
+[tool.versioningit.format]
+distance = "{next_version}.dev{distance}+{vcs}{rev}"
+# Example formatted version: 1.2.4.dev42+ge174a1f
+
+dirty = "{base_version}+d{build_date:%Y%m%d}"
+# Example formatted version: 1.2.3+d20230922
+
+distance-dirty = "{next_version}.dev{distance}+{vcs}{rev}.d{build_date:%Y%m%d}"
+# Example formatted version: 1.2.4.dev42+ge174a1f.d20230922
+
+[tool.versioningit.write]
+file = "pymagbot/version.py"
