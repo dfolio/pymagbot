@@ -40,4 +40,4 @@ distance-dirty = "{next_version}.dev{distance}+{vcs}{rev}.d{build_date:%Y%m%d}"
 # Example formatted version: 1.2.4.dev42+ge174a1f.d20230922
 
 [tool.versioningit.write]
-file = "pymagbot/version.py"
+file = "pymagbot/_version.py"
