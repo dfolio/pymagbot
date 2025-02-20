@@ -1,4 +1,7 @@
-# pymagbot
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+![GitHub Tag](https://img.shields.io/github/v/tag/dfolio/pymagbot)
+
+# PyMagBot
 
 ## Description
 PyMagBot is a Python module for modeling and control of magnetic microrobots. It is designed for versatility, modularity, and GPU acceleration using PyTorch.
