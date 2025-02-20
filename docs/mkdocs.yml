@@ -1,0 +1,14 @@
+site_name: PyMagBot Documentation
+theme:
+  name: bootstrap
+nav:
+  - Home: index.md
+  - API Reference: api.md
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            docstring_style: numpy
