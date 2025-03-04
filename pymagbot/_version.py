@@ -15,4 +15,4 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-__version__ = "0.0.1+d20250220"
+__version__ = "0.0.2.dev5+g466a77c.d20250220"
