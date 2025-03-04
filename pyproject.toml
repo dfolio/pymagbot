@@ -15,7 +15,7 @@ dependencies = [
     "numpy",
     "scipy",
     "torch",
-    "matplotlib",
+    "plotly",
     "mkdocs",
     "mkdocstrings[python]"
 ]

@@ -1,0 +1,28 @@
+site_name: PyMagBot Documentation
+docs_dir: docs
+theme:
+  name: bootstrap
+
+nav:
+  - Home: index.md
+  - API Reference:
+      - Geometry: math/geometry_base.md
+      - Frame: math/frame.md
+  - Examples:
+    - examples/frame.md
+
+plugins:
+  - search
+  - autorefs
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          load_external_modules: true
+          inventories:
+            - url: https://docs.python-requests.org/en/master/objects.inv
+              domains: [std, py]
+          options:
+            docstring_style: numpy
+            show_source: false
+            show_signature: true

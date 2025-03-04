@@ -1,16 +1,15 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-![GitHub Tag](https://img.shields.io/github/v/tag/dfolio/pymagbot)
 
 # PyMagBot
 
 ## Description
-PyMagBot is a Python module for modeling and control of magnetic microrobots. It is designed for versatility, modularity, and GPU acceleration using PyTorch.
+PyMagBot is a Python module for modeling and control of magnetic microrobots. It is designed for versatility, modularity, and GPU acceleration using [PyTorch](https://pytorch.org/).
 
 ## Features
 - Rigid transformations (SE(3))
 - Frame hierarchy and kinematics
-- GPU acceleration with PyTorch
-- Integration with scientific libraries (NumPy, SciPy, Matplotlib)
+- GPU acceleration with [PyTorch](https://pytorch.org/)
+- Integration with scientific libraries (NumPy, SciPy, Plotly)
 - Future compatibility with ROS2
 
 ## Usage
@@ -32,7 +31,6 @@ pymagbot/
   │                └── geometry.py  # Geometric objects (to be implemented)
   ├── data/
   ├── docs/
-  │   ├── mkdocs.yml  # MkDocs configuration
   │   └── index.md  # Documentation index
   ├── notebook/
   ├── scripts/
@@ -41,6 +39,7 @@ pymagbot/
   ├── tests/
   │   ├── test_frame.py  # Unit tests for Frame
   │   └── test_geometry.py  # Unit tests for Geometry
+  ├── mkdocs.yml  # MkDocs configuration
   ├── pyproject.toml  # Modern package configuration
   ├── README.md  # Project overview
   ├── LICENSE  # License (MIT or CC BY 4.0)

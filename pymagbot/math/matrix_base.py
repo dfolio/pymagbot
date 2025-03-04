@@ -28,6 +28,20 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
@@ -42,15 +56,16 @@ __all__ = ['MatrixBase', 'VectorBase']
 class MatrixBase(ABC):
     """Abstract base class for matrix-like objects.
 
-    This class provides a foundation for representing matrices using PyTorch tensors.
+    This class provides a foundation for representing matrices using [PyTorch](https://pytorch.org/) tensors.
     It handles device management (CPU or GPU) and provides basic validation.
 
     Attributes
     ----------
     data : torch.Tensor
-        The data stored in the matrix. If None, a zero matrix of shape (dim, dim) or (dim,) is created,
-        depending on the subclass. Can be a PyTorch tensor, another [`MatrixBase`][
-        pymagbot.math.matrix_base.MatrixBase] instance, or a list/tuple of numerical values.
+        The data stored in the matrix.
+        depending on the subclass. Can be a [PyTorch](https://pytorch.org/) tensor, another
+        [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] instance, or a
+        list/tuple of numerical values.
     dim : int, optional
         The dimension of the matrix (e.g. 2 for 2D, 3 for 3D).
     """
@@ -74,31 +89,31 @@ class MatrixBase(ABC):
     @property
     def data(self) -> torch.Tensor:
         """
-        Get the underlying PyTorch tensor data.
+        Get the underlying [PyTorch](https://pytorch.org/) tensor data.
 
         Returns
         -------
         torch.Tensor
-            The PyTorch tensor representing the matrix data.
+            The [PyTorch](https://pytorch.org/) tensor representing the matrix data.
         """
         return self._data
     
     @data.setter
     def data(self, value: Union[torch.Tensor, 'MatrixBase', list, tuple]):
         """
-        Set the underlying PyTorch tensor data.
+        Set the underlying [PyTorch](https://pytorch.org/) tensor data.
 
         Parameters
         ----------
         value : Union[torch.Tensor, 'MatrixBase', list, tuple]
-            The new data for the matrix.  It will be converted to a PyTorch tensor and moved to the appropriate device.
+            The new data for the matrix.  It will be converted to a [PyTorch](https://pytorch.org/) tensor and moved to the appropriate device.
         """
         self._data = self._initialize_data(value)
         self._validate()
     
     def _initialize_data(self, data) -> torch.Tensor:
         """
-        Initialize the PyTorch tensor data from various input types.
+        Initialize the [PyTorch](https://pytorch.org/) tensor data from various input types.
 
         Parameters
         ----------
@@ -108,7 +123,7 @@ class MatrixBase(ABC):
         Returns
         -------
         torch.Tensor
-            The initialized PyTorch tensor.
+            The initialized [PyTorch](https://pytorch.org/) tensor.
         """
         if data is None:
             # shape = (self.dim, self.dim) if isinstance(self, RotationMatrix) else (self.dim,)
