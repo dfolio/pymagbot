@@ -4,9 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pymagbot"
-version = "0.0.1"
 description = "Modeling and control of magnetic microrobots"
 authors = [
+    {name = "David FOLIO", email = "david.folio@insa-cvl.fr"}
+]
+maintainers = [
     {name = "David FOLIO", email = "david.folio@insa-cvl.fr"}
 ]
 dependencies = [
@@ -18,6 +20,9 @@ dependencies = [
     "mkdocstrings[python]"
 ]
 dynamic = ["version"]
+readme = "README.md"
+license = {file = "LICENSE"}
+license-files = ["LICEN[CS]E.*"]
 
 [tool.versioningit.vcs]
 # The method key:
