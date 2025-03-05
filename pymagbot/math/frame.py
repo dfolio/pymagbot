@@ -42,6 +42,20 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
 # import numpy as np
 # from scipy.spatial.transform import Rotation as R
@@ -71,6 +85,7 @@ class Frame():
     """
     _id_counter = itertools.count(1)  # Unique ID generator for frames
     
+    """The world reference frame"""
     world = None
     
     def __new__(cls, name: Optional[str] = None, parent: Optional['Frame'] = None,
@@ -97,12 +112,14 @@ class Frame():
             The [`Frame`][pymagbot.math.frame.Frame] instance.  If a frame with the given name already exists, that instance is returned.
         """
         # name = cls._generate_unique_name(name)
+        # if cls._id_counter == 0:
+        #     if name is None or name not in WORLD_FRAME_NAMES:
         
         name = name.lower() if name else f"Frame_{next(cls._id_counter)}"
         if name in known_frames:
             return known_frames[name]
         instance = super().__new__(cls)
-        instance._name: str = name  # Store the name early
+        instance._name = name  # Store the name early
         known_frames[name] = instance
         return instance
     
@@ -135,7 +152,7 @@ class Frame():
             if Frame.world is None:
                 Frame.world = self  # Set the world frame
             elif Frame.world is not self:
-                raise ValueError("Only one world frame instance is allowed.")
+                raise ValueError(f"Only one world frame instance is allowed: {self.name:}.")
         
         self.parent: 'Frame' = Frame.world if parent is None and not self.is_world() else parent
         if self.parent:
@@ -291,7 +308,8 @@ class Frame():
         return self.transform.to_matrix()
     
     def __repr__(self):
-        return f"name={self.name}, Frame(transform={self.transform.to_matrix().cpu().numpy()}, parent={self.parent})"
+        return (f"name={self.name}, Frame(transform={self.transform.to_matrix().cpu().numpy()}, "
+                f"parent={self.parent.name})")
     
     @staticmethod
     def known() -> weakref.WeakValueDictionary:
@@ -305,17 +323,19 @@ class Frame():
         """
         return known_frames
     
-    def plot(self, scene=None, scale=1.0, label=True, name=None):
+    def plot(self, fig=None, scale=1.0, label: bool = True, name=None):
         """Plot the frame using Plotly.
 
         Parameters
         ----------
-        scene : plotly.graph_objects.Scene, optional
-            The Plotly scene to add the frame to. If None, a new figure and scene will be created.
+        fig : plotly.graph_objects.Figure, optional
+            The Plotly figure to add the frame to. If None, a new figure will be created.
         scale : float, optional
             The scale of the coordinate frame axes. Defaults to 1.0.
         label : bool, optional
             Whether to display the frame name as a label. Defaults to True.
+        name : str, optional
+            An optional name for the frame, used in labels.
 
         Returns
         -------
@@ -331,7 +351,7 @@ class Frame():
         """
         try:
             import plotly.graph_objects as go
-            import numpy as np  # Import numpy within the try block
+            # import numpy as np  # Import numpy within the try block
         except ImportError:
             raise ImportError("Plotly is required for plotting.")
         
@@ -346,42 +366,66 @@ class Frame():
         y_axis = R[:, 1] * scale
         z_axis = R[:, 2] * scale
         
-        if scene is None:
-            fig = go.Figure()
-            scene = go.Scene(
-                xaxis=dict(title='X'),
-                yaxis=dict(title='Y'),
-                zaxis=dict(title='Z'),
-                aspectmode='data'  # Ensures proper scaling
-            )
-            fig.update_layout(scene=scene)  # Assign the scene to the layout
-        
         # Plot the axes
         origin_point = Point(data=torch.tensor(origin), dim=3)
-        x_direction = Direction(data=torch.tensor(x_axis), dim=3)
-        y_direction = Direction(data=torch.tensor(y_axis), dim=3)
-        z_direction = Direction(data=torch.tensor(z_axis), dim=3)
+        x_direction = Direction(coordinates=torch.tensor(x_axis), dim=3)
+        y_direction = Direction(coordinates=torch.tensor(y_axis), dim=3)
+        z_direction = Direction(coordinates=torch.tensor(z_axis), dim=3)
         
-        origin_point.plot(scene=scene, color='black', label=name if name else self.name + "_origin", size=4)
-        x_direction.plot(scene=scene, origin=origin_point, color='red', scale=1,
-                         label=name if name else self.name + "_X")
-        y_direction.plot(scene=scene, origin=origin_point, color='green', scale=1,
-                         label=name if name else self.name + "_Y")
-        z_direction.plot(scene=scene, origin=origin_point, color='blue', scale=1,
-                         label=name if name else self.name + "_Z")
+        traces = []
+        traces.append(self._create_axis_trace(origin_point, name if name else self.name + "_origin", 'black', 'o'))
+        traces.append(self._create_axis_trace(x_direction, name if name else self.name + "_X", 'red', origin_point))
+        traces.append(self._create_axis_trace(y_direction, name if name else self.name + "_Y", 'green', origin_point))
+        traces.append(self._create_axis_trace(z_direction, name if name else self.name + "_Z", 'blue', origin_point))
         
-        if scene is None:
+        if fig is None:
+            fig = go.Figure(data=traces)
+            fig.update_layout(
+                scene=dict(
+                    xaxis=dict(title='X'),
+                    yaxis=dict(title='Y'),
+                    zaxis=dict(title='Z'),
+                    aspectmode='data'  # Ensures proper scaling
+                )
+            )
             return fig
         else:
-            return scene
+            for trace in traces:
+                fig.add_trace(trace)
+            return fig
     
-    def plot_tree(self, scene=None, scale=1.0, name=None):
+    def _create_axis_trace(self, axis, name, color, origin=None):
+        """Helper function to create a trace for an axis (Point or Direction)."""
+        try:
+            import plotly.graph_objects as go
+        except ImportError:
+            raise ImportError("Plotly is required for plotting. Install with `pip install plotly`.")
+        
+        if isinstance(axis, Point):
+            x, y, z = axis.data[0].cpu().numpy(), axis.data[1].cpu().numpy(), axis.data[2].cpu().numpy()
+            trace = go.Scatter3d(
+                x=[x], y=[y], z=[z], mode='markers', marker=dict(color=color, symbol='circle', size=4), name=name
+            )
+        elif isinstance(axis, Direction):
+            if origin is None:
+                origin = Point(torch.zeros(self.dim), dim=self.dim)
+            x0, y0, z0 = origin.data[0].cpu().numpy(), origin.data[1].cpu().numpy(), origin.data[2].cpu().numpy()
+            x1, y1, z1 = x0 + axis.data[0].cpu().numpy(), y0 + axis.data[1].cpu().numpy(), z0 + axis.data[
+                2].cpu().numpy()
+            trace = go.Scatter3d(
+                x=[x0, x1], y=[y0, y1], z=[z0, z1], mode='lines', line=dict(color=color), name=name
+            )
+        else:
+            raise TypeError("Axis must be a Point or Direction object.")
+        return trace
+    
+    def plot_tree(self, fig=None, scale=1.0, name=None):
         """Plot the frame and all its children as a tree structure.
 
         Parameters
         ----------
-        scene : plotly.graph_objects.Scene, optional
-            The Plotly scene to add the frame to. If None, a new figure and scene will be created.
+        fig : plotly.graph_objects.Figure, optional
+            The Plotly figure to add the frame to. If None, a new figure will be created.
         scale : float, optional
             The scale of the coordinate frame axes. Defaults to 1.0.
 
@@ -390,21 +434,27 @@ class Frame():
         plotly.graph_objects.Figure
             The Plotly figure object.
         """
+        try:
+            import plotly.graph_objects as go
+            import numpy as np  # Import numpy within the try block
+        except ImportError:
+            raise ImportError("Plotly is required for plotting.")
         
-        if scene is None:
+        if fig is None:
             fig = go.Figure()
-            scene = go.Scene(
-                xaxis=dict(title='X'),
-                yaxis=dict(title='Y'),
-                zaxis=dict(title='Z'),
-                aspectmode='data'  # Ensures proper scaling
+            fig.update_layout(
+                scene=dict(
+                    xaxis=dict(title='X'),
+                    yaxis=dict(title='Y'),
+                    zaxis=dict(title='Z'),
+                    aspectmode='data'  # Ensures proper scaling
+                )
             )
-            fig.update_layout(scene=scene)
         
-        scene = self.plot(scene=scene, scale=scale, name=name if name else self.name)
+        fig = self.plot(fig=fig, scale=scale, name=name if name else self.name)
         for i, child in enumerate(self.children):
-            child.plot_tree(scene=scene, scale=scale, name=name if name else self.name + f"_{i + 1}")
-        if scene is None:
+            child.plot_tree(fig=fig, scale=scale, name=name if name else child.name )
+        if fig is None:
             return fig
         else:
             return fig

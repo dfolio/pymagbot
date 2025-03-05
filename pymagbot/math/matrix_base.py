@@ -42,6 +42,20 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
@@ -161,7 +175,7 @@ class MatrixBase(ABC):
         str
             A string representation of the matrix data (CPU numpy array).
         """
-        return str()
+        return str(self.array())
     
     def __repr__(self) -> str:
         """
@@ -223,6 +237,86 @@ class MatrixBase(ABC):
             A deep copy of the object.
         """
         return self.__class__(self.data.clone())
+    
+    def __add__(self, other):
+        """
+        Add two MatrixBase objects.
+
+        Parameters
+        ----------
+        other : MatrixBase
+            The other MatrixBase object to add.
+
+        Returns
+        -------
+        MatrixBase
+            The result of the addition.
+        """
+        return self.__class__(self.data + other.data)
+    
+    def __sub__(self, other):
+        """
+        Subtract two MatrixBase objects.
+
+        Parameters
+        ----------
+        other : MatrixBase
+            The other MatrixBase object to subtract.
+
+        Returns
+        -------
+        MatrixBase
+            The result of the subtraction.
+        """
+        return self.__class__(self.data - other.data)
+    
+    def __matmul__(self, other):
+        """
+        Matrix multiplication of two MatrixBase objects.
+
+        Parameters
+        ----------
+        other : MatrixBase
+            The other MatrixBase object to multiply.
+
+        Returns
+        -------
+        MatrixBase
+            The result of the matrix multiplication.
+        """
+        return self.__class__(self.data @ other.data)
+    
+    def __mul__(self, scalar):
+        """
+        Multiply the matrix by a scalar.
+
+        Parameters
+        ----------
+        scalar : float
+            The scalar to multiply.
+
+        Returns
+        -------
+        MatrixBase
+            The result of the scalar multiplication.
+        """
+        return self.__class__(self.data * scalar)
+    
+    def __truediv__(self, scalar):
+        """
+        Divide the matrix by a scalar.
+
+        Parameters
+        ----------
+        scalar : float
+            The scalar to divide.
+
+        Returns
+        -------
+        MatrixBase
+            The result of the scalar division.
+        """
+        return self.__class__(self.data / scalar)
 
 
 class VectorBase(MatrixBase):

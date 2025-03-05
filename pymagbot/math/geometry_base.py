@@ -28,6 +28,20 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 from typing import Optional, Union
 
 import torch
@@ -54,7 +68,7 @@ class RotationMatrix(MatrixBase):
         """
         super().__init__(matrix if matrix is not None else torch.eye(dim), dim=dim)
     
-    def _validate(self) -> 'RotationMatrix':
+    def _validate(self):
         """
         Validate that the matrix is a valid rotation matrix (orthogonal).
 
@@ -66,7 +80,7 @@ class RotationMatrix(MatrixBase):
         if not torch.allclose(self.data.T @ self.data, torch.eye(self.dim, device=self.device), atol=1e-6):
             raise ValueError(f"Rotation matrix must be orthogonal, got {self.data}.")
     
-    def inverse(self):
+    def inverse(self) -> 'RotationMatrix':
         """
         Calculate the inverse of the rotation matrix.
 
@@ -79,7 +93,7 @@ class RotationMatrix(MatrixBase):
 
 
 class Point(VectorBase):
-    """A  point representation in in 2D or 3D space"""
+    """A  point representation in 2D or 3D space"""
     
     def transform(self, rotation_matrix: RotationMatrix, translation: 'Point'):
         """
@@ -99,17 +113,17 @@ class Point(VectorBase):
         """
         return Point(rotation_matrix.data @ self.data + translation.data, dim=self.dim)
     
-    def plot(self, scene=None, color='k', marker='o', size=5, label=None):
+    def plot(self, fig=None, color='black', marker='circle', size=5, label=None):
         """Plot the point using Plotly.
 
         Parameters
         ----------
-        scene : plotly.graph_objects.Scene, optional
-            The Plotly scene to add the point to. If None, a new figure and scene will be created.
+        fig : plotly.graph_objects.Figure, optional
+            The Plotly figure to add the point to. If None, a new figure will be created.
         color : str, optional
-            The color of the point. Defaults to 'k' (black).
+            The color of the point. Defaults to 'black'.
         marker : str, optional
-            The marker style. Defaults to 'o' (circle).
+            The marker style. Defaults to 'circle'.
         size : int, optional
             The size of the marker. Defaults to 5.
         label : str, optional
@@ -149,12 +163,12 @@ class Point(VectorBase):
                 text=[label] if label else None, hoverinfo='text' if label else 'none'
             )
         
-        if scene is None:
+        if fig is None:
             fig = go.Figure(data=[trace])
             return fig
         else:
-            scene.add_trace(trace)
-            return scene
+            fig.add_trace(trace)
+            return fig
 
 
 class Direction(VectorBase):
@@ -173,16 +187,16 @@ class Direction(VectorBase):
         dim : int, optional
             The dimension of the direction vector (2 or 3).
         """
-        super().__init__(coordinates, dim=dim)
+        super().__init__(data=coordinates, dim=dim)
         self.data = self.data / torch.norm(self.data)
     
-    def plot(self, scene=None, origin=None, color='r', scale=1.0, label=None):
+    def plot(self, fig=None, origin=None, color='red', scale=1.0, label=None):
         """Plot the direction vector using Plotly.
 
         Parameters
         ----------
-        scene : plotly.graph_objects.Scene, optional
-            The Plotly scene to add the direction vector to. If None, a new figure and scene will be created.
+        fig: plotly.graph_objects.Figure, optional
+            The Plotly figure to add the direction vector to. If None, a new figure will be created.
         origin : Point, optional
             The origin point of the direction vector. If None, the origin is assumed to be (0, 0, 0).
         color : str, optional
@@ -206,7 +220,7 @@ class Direction(VectorBase):
         """
         try:
             import plotly.graph_objects as go
-            import numpy as np
+            # import numpy as np
         except ImportError:
             raise ImportError("Plotly is required for plotting. Install with `pip install plotly`.")
         
@@ -232,12 +246,12 @@ class Direction(VectorBase):
                 text=[label] if label else None, hoverinfo='text' if label else 'none'
             )
         
-        if scene is None:
+        if fig is None:
             fig = go.Figure(data=[trace])
             return fig
         else:
-            scene.add_trace(trace)
-            return scene
+            fig.add_trace(trace)
+            return fig
 
 
 class RigidTransform:
