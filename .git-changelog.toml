@@ -1,0 +1,13 @@
+bump = "auto"
+convention = "basic"
+provider = "github"
+in-place = true
+output = "CHANGELOG.md"
+parse-refs = true
+parse-trailers = false
+# sections = ["build", "deps", "feat", "fix", "perf", "refactor"]
+sections = ["add", "fix", "change", "remove", "doc"]
+#emplate = "keepachangelog"
+#template = "angular"
+#versioning = "pep440"
+versioning = "semver"
