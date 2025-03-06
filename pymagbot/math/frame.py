@@ -13,35 +13,9 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
+
+#  pymagbot
+#  Copyright (c) 2025 dfolio
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -73,20 +47,24 @@ __all__ = ['Frame']
 known_frames: weakref.WeakValueDictionary[str, 'Frame'] = weakref.WeakValueDictionary()  # Prevent memory leaks
 
 WORLD_FRAME_NAMES: tuple[str, ...] = ('world', 'Frame_0', 'F0', 'workspace')
-"""Known reserved name and aliases for world reference frame"""
+"""Known reserved name and aliases for world frame of reference"""
 
 
 class Frame():
     """
-    An frame defined by a rigid transformation (SE(2) or SE(3)).
+    A frame defined by a [rigid transformation](https://en.wikipedia.org/wiki/Rigid_transformation) (SE(2) or SE(3)).
     
-    This class represents a inertia frame in 2D or 3D space.  It manages the frame's
-    transformation relative to its parent frame, and maintains a registry of known frames.
+    This class represents and handles frames in either 2D or 3D space.  In physics, a frame of reference (or reference
+    frame) is an abstract coordinate system whose origin and orientation are specified in physical space. This class
+    manages the frame's transformation relative to its parent frame, and maintains a registry of
+    known frames.
+    
     """
-    _id_counter = itertools.count(1)  # Unique ID generator for frames
+    _id_counter = itertools.count(1)
+    """Unique ID generator for frames."""
     
-    """The world reference frame"""
     world = None
+    """The unique world (global, absolute) frame of reference."""
     
     def __new__(cls, name: Optional[str] = None, parent: Optional['Frame'] = None,
                 transform: Optional[RigidTransform] = None, dim: int = 3) -> 'Frame':
@@ -98,11 +76,11 @@ class Frame():
         Parameters
         ----------
         name : str, optional
-            The name of the frame. If None, a unique name is generated.
+            The name of the frame. If `None`, a unique name is generated.
         parent : Frame, optional
-            The parent frame. If None, the world frame is used as the parent.
+            The parent frame. If `None`, the world frame is used as the parent.
         transform : RigidTransform, optional
-            The rigid transformation. If None, an identity transformation is used.
+            The rigid transformation. If `None`, an identity transformation is used.
         dim : int, optional
             The dimension of the frame (2 or 3). Defaults to 3.
 
@@ -111,10 +89,6 @@ class Frame():
         Frame
             The [`Frame`][pymagbot.math.frame.Frame] instance.  If a frame with the given name already exists, that instance is returned.
         """
-        # name = cls._generate_unique_name(name)
-        # if cls._id_counter == 0:
-        #     if name is None or name not in WORLD_FRAME_NAMES:
-        
         name = name.lower() if name else f"Frame_{next(cls._id_counter)}"
         if name in known_frames:
             return known_frames[name]
@@ -131,9 +105,9 @@ class Frame():
         Parameters
         ----------
         name : str, optional
-            The name of the frame.
+            The name of the frame. The name of a frame must be unique.  If `None`, a name is automatically generated.
         parent : Frame, optional
-            The parent frame.
+            The parent frame. If `None`, the [world][pymagbot.math.frame.Frame.world] frame is used as the parent.
         transform : RigidTransform, optional
             The rigid transformation.
         dim : int, optional
@@ -213,24 +187,24 @@ class Frame():
             parent = parent.parent
         return False
     
-    def move_to(self, translation, local: bool = True):
+    def move_to(self, location, local: bool = True):
         """
         Move the frame to a new location.
 
         Parameters
         ----------
-        translation : array_like
+        location : array_like
             The translation vector.
         local : bool, optional
             Whether the translation is local to the parent frame or with respect to the world frame.
         """
-        if not isinstance(translation, Point):
-            translation = Point(translation, dim=self.dim)
+        if not isinstance(location, Point):
+            location = Point(location, dim=self.dim)
         if local and self.parent:
-            self.transform.d = Point(self.parent.transform.R.data @ translation.data + self.parent.transform.d.data,
+            self.transform.d = Point(self.parent.transform.R.data @ location.data + self.parent.transform.d.data,
                                      dim=self.dim)
         else:
-            self.transform.d = translation  # Set the translation directly in world coordinates
+            self.transform.d = location  # Set the translation directly in world coordinates
         self._propagate_changes()
     
     def rotate(self, rotation_matrix, local: bool = True):
@@ -241,6 +215,8 @@ class Frame():
         ----------
         rotation_matrix : array_like
             The rotation matrix.
+            See also: [RotationMatrix][pymagbot.math.geometry_base.RotationMatrix]
+            
         local : bool, optional
             Whether the rotation is local to the parent frame or with respect to the world frame.
         """
@@ -324,12 +300,12 @@ class Frame():
         return known_frames
     
     def plot(self, fig=None, scale=1.0, label: bool = True, name=None):
-        """Plot the frame using Plotly.
+        """Plot the frame using [Plotly](https://plotly.com/).
 
         Parameters
         ----------
         fig : plotly.graph_objects.Figure, optional
-            The Plotly figure to add the frame to. If None, a new figure will be created.
+            The  [Plotly](https://plotly.com/) figure to add the frame to. If `None`, a new figure will be created.
         scale : float, optional
             The scale of the coordinate frame axes. Defaults to 1.0.
         label : bool, optional
@@ -339,13 +315,13 @@ class Frame():
 
         Returns
         -------
-        plotly.graph_objects.Figure or plotly.graph_objects.Scene
-            The Plotly figure object, or the modified scene if a scene was provided as input.
+        plotly.graph_objects.Figure
+            The  [Plotly](https://plotly.com/) figure object, or the modified scene if a scene was provided as input.
 
         Raises
         ------
         ImportError
-            If Plotly is not installed.
+            If  [Plotly](https://plotly.com/) is not installed.
         ValueError
             If the frame is not 3D.
         """
@@ -425,14 +401,14 @@ class Frame():
         Parameters
         ----------
         fig : plotly.graph_objects.Figure, optional
-            The Plotly figure to add the frame to. If None, a new figure will be created.
+            The  [Plotly](https://plotly.com/) figure to add the frame to. If `None`, a new figure will be created.
         scale : float, optional
             The scale of the coordinate frame axes. Defaults to 1.0.
 
         Returns
         -------
         plotly.graph_objects.Figure
-            The Plotly figure object.
+            The  [Plotly](https://plotly.com/) figure object.
         """
         try:
             import plotly.graph_objects as go
@@ -453,12 +429,12 @@ class Frame():
         
         fig = self.plot(fig=fig, scale=scale, name=name if name else self.name)
         for i, child in enumerate(self.children):
-            child.plot_tree(fig=fig, scale=scale, name=name if name else child.name )
+            child.plot_tree(fig=fig, scale=scale, name=name if name else child.name)
         if fig is None:
             return fig
         else:
             return fig
 
 
-# Initialize the world frame
+# Initialize the world reference frame
 world = Frame(name=WORLD_FRAME_NAMES[0])

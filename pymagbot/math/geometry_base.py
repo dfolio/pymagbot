@@ -13,21 +13,9 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
+
+#  pymagbot
+#  Copyright (c) 2025 dfolio
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -114,7 +102,7 @@ class Point(VectorBase):
         return Point(rotation_matrix.data @ self.data + translation.data, dim=self.dim)
     
     def plot(self, fig=None, color='black', marker='circle', size=5, label=None):
-        """Plot the point using Plotly.
+        """Plot the point using  [Plotly](https://plotly.com/).
 
         Parameters
         ----------
@@ -132,12 +120,12 @@ class Point(VectorBase):
         Returns
         -------
         plotly.graph_objects.Figure
-            The Plotly figure object.
+            The  [Plotly](https://plotly.com/) figure object.
 
         Raises
         ------
         ImportError
-            If Plotly is not installed.
+            If  [Plotly](https://plotly.com/) is not installed.
         ValueError
             If the point is not 2D or 3D.
         """
@@ -191,7 +179,7 @@ class Direction(VectorBase):
         self.data = self.data / torch.norm(self.data)
     
     def plot(self, fig=None, origin=None, color='red', scale=1.0, label=None):
-        """Plot the direction vector using Plotly.
+        """Plot the direction vector using  [Plotly](https://plotly.com/).
 
         Parameters
         ----------
@@ -209,12 +197,12 @@ class Direction(VectorBase):
         Returns
         -------
         plotly.graph_objects.Figure
-            The Plotly figure object.
+            The  [Plotly](https://plotly.com/) figure object.
 
         Raises
         ------
         ImportError
-            If Plotly is not installed.
+            If  [Plotly](https://plotly.com/) is not installed.
         ValueError
             If the direction vector is not 2D or 3D.
         """

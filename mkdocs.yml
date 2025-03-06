@@ -6,6 +6,7 @@ repo_name: dfolio/pymagbot
 copyright: Copyright &copy; 2025 <a href="https://dfolio.fr">David Folio</a>
 site_author: David Folio
 docs_dir: docs
+watch: [mkdocs.yml, README.md, pymagbot/, pymagbot/math/] #, CHANGELOG.md
 
 theme:
   name: material
@@ -23,7 +24,6 @@ theme:
   - search.highlight
   - search.suggest
   - toc.follow
-
 
 nav:
   - Home:
@@ -53,12 +53,15 @@ plugins:
             - https://mkdocstrings.github.io/autorefs/objects.inv
             - https://www.mkdocs.org/objects.inv
             - https://python-markdown.github.io/objects.inv
+            - https://pytorch.org/docs/stable/objects.inv
+            - https://numpy.org/doc/1.26/objects.inv
+            - https://plotly.com/python-api-reference/objects.inv
           options:
             docstring_style: numpy
             docstring_options:
               ignore_init_summary: true
             docstring_section_style: list
-            heading_level: 1
+            #heading_level: 1
             inherited_members: true
             merge_init_into_class: true
             parameter_headings: true
@@ -84,6 +87,7 @@ extra:
 
 markdown_extensions:
   - abbr
+  - admonition
   - attr_list
   - codehilite
   - pymdownx.details

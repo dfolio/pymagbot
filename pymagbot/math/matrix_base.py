@@ -13,21 +13,9 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
+
+#  pymagbot
+#  Copyright (c) 2025 dfolio
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -42,20 +30,14 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-#
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
+"""
+This module defines base classes for matrices and vectors, providing a foundation for more specialized  geometric
+representations like rotation matrices, points, and directions. It leverages  [PyTorch](https://pytorch.org/) for
+efficient tensor operations and GPU acceleration if available.
+
+!!! note
+    This module provides base classes and should be extended to create more specific matrix and vector types
+"""
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
@@ -75,18 +57,20 @@ class MatrixBase(ABC):
 
     Attributes
     ----------
-    data : torch.Tensor
+    _data : torch.Tensor
         The data stored in the matrix.
         depending on the subclass. Can be a [PyTorch](https://pytorch.org/) tensor, another
-        [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] instance, or a
-        list/tuple of numerical values.
+        [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] instance, or a list/tuple of numerical values.
     dim : int, optional
         The dimension of the matrix (e.g. 2 for 2D, 3 for 3D).
+    device : torch.device, optional
+        The device on which the [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] instance is build
+        (e.g. "cpu" or "cuda").
     """
     
     def __init__(self, data: Optional[Union[torch.Tensor, 'MatrixBase', list, tuple]] = None, dim: int = 3):
         """
-        Initialize the MatrixBase with data or shape.
+        Initialize the [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] with data or shape.
 
         Parameters
         ----------
@@ -119,7 +103,7 @@ class MatrixBase(ABC):
 
         Parameters
         ----------
-        value : Union[torch.Tensor, 'MatrixBase', list, tuple]
+        value : Union[torch.Tensor, [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase],, list, tuple]
             The new data for the matrix.  It will be converted to a [PyTorch](https://pytorch.org/) tensor and moved to the appropriate device.
         """
         self._data = self._initialize_data(value)
@@ -240,12 +224,12 @@ class MatrixBase(ABC):
     
     def __add__(self, other):
         """
-        Add two MatrixBase objects.
+        Add two [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] objects.
 
         Parameters
         ----------
         other : MatrixBase
-            The other MatrixBase object to add.
+            The other [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] object to add.
 
         Returns
         -------
@@ -256,12 +240,12 @@ class MatrixBase(ABC):
     
     def __sub__(self, other):
         """
-        Subtract two MatrixBase objects.
+        Subtract two [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] objects.
 
         Parameters
         ----------
         other : MatrixBase
-            The other MatrixBase object to subtract.
+            The other [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] object to subtract.
 
         Returns
         -------
@@ -272,23 +256,23 @@ class MatrixBase(ABC):
     
     def __matmul__(self, other):
         """
-        Matrix multiplication of two MatrixBase objects.
+        Matrix multiplication of two [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] objects.
 
         Parameters
         ----------
         other : MatrixBase
-            The other MatrixBase object to multiply.
+            The other [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] object to multiply.
 
         Returns
         -------
         MatrixBase
-            The result of the matrix multiplication.
+            The result of the [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] multiplication.
         """
         return self.__class__(self.data @ other.data)
     
     def __mul__(self, scalar):
         """
-        Multiply the matrix by a scalar.
+        Multiply the [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] by a scalar.
 
         Parameters
         ----------
@@ -304,7 +288,7 @@ class MatrixBase(ABC):
     
     def __truediv__(self, scalar):
         """
-        Divide the matrix by a scalar.
+        Divide the [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] by a scalar.
 
         Parameters
         ----------
