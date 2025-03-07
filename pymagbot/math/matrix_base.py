@@ -29,7 +29,7 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
+
 """
 This module defines base classes for matrices and vectors, providing a foundation for more specialized  geometric
 representations like rotation matrices, points, and directions. It leverages  [PyTorch](https://pytorch.org/) for
@@ -42,11 +42,17 @@ efficient tensor operations and GPU acceleration if available.
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
 
+import numpy as np
 import torch
 
 from pymagbot._config import USE_CUDA
 
 __all__ = ['MatrixBase', 'VectorBase']
+
+
+def _get_data(data):
+    if isinstance(data, MatrixBase):
+        return data.data
 
 
 class MatrixBase(ABC):
@@ -67,6 +73,8 @@ class MatrixBase(ABC):
         The device on which the [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] instance is build
         (e.g. "cpu" or "cuda").
     """
+    
+    dim: Optional[int] = 3
     
     def __init__(self, data: Optional[Union[torch.Tensor, 'MatrixBase', list, tuple]] = None, dim: int = 3):
         """
@@ -109,6 +117,30 @@ class MatrixBase(ABC):
         self._data = self._initialize_data(value)
         self._validate()
     
+    tensor = data
+    
+    @property
+    def array(self) -> np.ndarray:
+        """The data as [numpy](https://numpy.org/) array."""
+        return self.data.cpu().numpy()
+    
+    matrix = array
+    
+    @classmethod
+    def null(cls):
+        """`null` value"""
+        return cls(torch.empty(0))
+    
+    def isnull(self) -> bool:
+        return self == self.null()
+    
+    @property
+    def shape(self):
+        """Shape of the :class:`MatrixAbstract` object."""
+        if isinstance(self.data, torch.Tensor):
+            return self.data.shape
+        raise TypeError(f'Class {type(self)} does not support shape.')
+    
     def _initialize_data(self, data) -> torch.Tensor:
         """
         Initialize the [PyTorch](https://pytorch.org/) tensor data from various input types.
@@ -126,12 +158,14 @@ class MatrixBase(ABC):
         if data is None:
             # shape = (self.dim, self.dim) if isinstance(self, RotationMatrix) else (self.dim,)
             return torch.zeros((self.dim,), device=self.device, dtype=torch.float32)
-        
         if isinstance(data, MatrixBase):
             data = data.data
         if torch.is_tensor(data):
+            self.dim: int = data.shape[0]
             return data.clone().to(self.device).float()  # Ensure it's a float tensor and on the correct device
-        return torch.tensor(data, dtype=torch.float32, device=self.device)  # Convert list/tuple to tensor
+        data = torch.tensor(data, dtype=torch.float32, device=self.device)  # Convert list/tuple to tensor
+        self.dim: int = data.shape[0]
+        return data
     
     @abstractmethod
     def _validate(self):
@@ -147,9 +181,6 @@ class MatrixBase(ABC):
         """
         pass
     
-    def array(self):
-        return self.data.cpu().numpy()
-    
     def __str__(self) -> str:
         """
         String representation of the matrix.
@@ -159,7 +190,7 @@ class MatrixBase(ABC):
         str
             A string representation of the matrix data (CPU numpy array).
         """
-        return str(self.array())
+        return str(self.array)
     
     def __repr__(self) -> str:
         """
@@ -170,7 +201,7 @@ class MatrixBase(ABC):
         str
             A string representation of the object including class name and data.
         """
-        return f"{self.__class__.__name__}({self.array()})"
+        return f"{self.__class__.__name__}({self.array})"
     
     def to_list(self) -> List[Any]:
         """
@@ -181,7 +212,7 @@ class MatrixBase(ABC):
         list
             A list representation of the matrix data.
         """
-        return self.array().tolist()
+        return self.array.tolist()
     
     def to_dict(self) -> Dict[str, List[Any]]:
         """
@@ -222,6 +253,20 @@ class MatrixBase(ABC):
         """
         return self.__class__(self.data.clone())
     
+    def __getitem__(self, idx):
+        return self._data[idx]
+    
+    def __len__(self) -> int:
+        return len(self.data)
+    
+    def __eq__(self, other) -> bool:
+        if other is None:
+            return False
+        other = _get_data(other)
+        if self.shape != other.shape:
+            return False
+        return torch.allclose(self.data, other)
+    
     def __add__(self, other):
         """
         Add two [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] objects.
@@ -236,7 +281,8 @@ class MatrixBase(ABC):
         MatrixBase
             The result of the addition.
         """
-        return self.__class__(self.data + other.data)
+        other = _get_data(other)
+        return self.__class__(self.data + other)
     
     def __sub__(self, other):
         """
@@ -252,7 +298,8 @@ class MatrixBase(ABC):
         MatrixBase
             The result of the subtraction.
         """
-        return self.__class__(self.data - other.data)
+        other = _get_data(other)
+        return self.__class__(self.data - other)
     
     def __matmul__(self, other):
         """
@@ -301,6 +348,34 @@ class MatrixBase(ABC):
             The result of the scalar division.
         """
         return self.__class__(self.data / scalar)
+    
+    def norm(self, **kwargs):
+        """ The  [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] norm of the matrix (if any)
+        
+        Parameters
+        ----------
+        **kwargs : dict
+            Keyword arguments to be passed to the [torch.norm][] function.
+        """
+        return self.data.norm(**kwargs)
+    
+    def transpose(self, **kwargs):
+        """Returns the   [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] with axes transposed."""
+        return self.data.transpose(**kwargs)
+
+    @property
+    def T(self):
+        """Returns the  [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] with axes transposed."""
+        return self.transpose()
+    
+    def scale(self, factor):
+        """Scale the [`MatrixBase`][[pymagbot.math.matrix_base.MatrixBase] by a factor"""
+        self.data.mul_(factor)
+    
+    def rmse(self, other):
+        """Root-mean-square error between two [`MatrixBase`][[pymagbot.math.matrix_base.MatrixBase]."""
+        other = _get_data(other)
+        return torch.sqrt(torch.mean((self.data - other) ** 2))
 
 
 class VectorBase(MatrixBase):
@@ -309,5 +384,44 @@ class VectorBase(MatrixBase):
     """
     
     def _validate(self):
+        """
+        Validate that the data has the correct shape for a vector.
+
+        Raises
+        ------
+        ValueError
+            If the data shape is not equal to (self.dim,).
+        """
         if self.data.shape != (self.dim,):
             raise ValueError(f"Vector must have shape ({self.dim},), got {self.data.shape}.")
+    
+    def _initialize_data(self, data) -> torch.Tensor:
+        data = super()._initialize_data(data)
+        self.dim = data.shape[0]
+        return data
+    
+    @classmethod
+    def null(cls):
+        return cls(torch.zeros((cls.dim,)))
+    
+    @property
+    def vector(self):
+        """The point's location_in_local. """
+        return self._data.squeeze()
+    
+    @property
+    def x(self):
+        """The first element in the point's data."""
+        return self.vector[0]
+    
+    @property
+    def y(self):
+        """The second element in the point's data."""
+        return self.vector[1]
+    
+    @property
+    def z(self):
+        """The third element in the point's data."""
+        if self.dim < 3:
+            raise (IndexError(f"z coordinates accessible in 3D!"))
+        return self.vector[2]
