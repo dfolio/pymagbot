@@ -29,7 +29,6 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 
 # import numpy as np
 # from scipy.spatial.transform import Rotation as R
@@ -50,7 +49,7 @@ WORLD_FRAME_NAMES: tuple[str, ...] = ('world', 'Frame_0', 'F0', 'workspace')
 """Known reserved name and aliases for world frame of reference"""
 
 
-class Frame():
+class Frame:
     """
     A frame defined by a [rigid transformation](https://en.wikipedia.org/wiki/Rigid_transformation) (SE(2) or SE(3)).
     
