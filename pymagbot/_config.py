@@ -29,12 +29,11 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 
 import torch
 
 try:
-    # Global flag for GPU availability
+    """ Global flag for (cuda) GPU availability """
     USE_CUDA = torch.cuda.is_available()
 except:
     USE_CUDA = False
