@@ -14,38 +14,35 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#  pymagbot
-#  Copyright (c) 2025 dfolio
-#
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Optional, Union
 
 import torch
+from numpy.typing import ArrayLike
 
 from pymagbot._config import USE_CUDA
 from pymagbot.math.matrix_base import MatrixBase, VectorBase
 
-__all__ = ['RotationMatrix', 'Point', 'Direction', 'RigidTransform']
+__all__ = ['RotationMatrix', 'Vertex', 'Direction', 'RigidTransform']
 
 
 class RotationMatrix(MatrixBase):
-    """A  rotation matrix representing an element of  SO(2) or SO(3)."""
+    """A  rotation matrix representing an element of  SO(2) or SO(3).
     
-    def __init__(self, matrix: Optional[Union[torch.Tensor, 'RotationMatrix', list, tuple]] = None, dim: int = 3):
+    In linear algebra, a rotation matrix is a transformation matrix that is used to perform a rotation in Euclidean
+    space. More specifically, they can be characterized as **orthogonal matrice**, that is, a _square matrix_ $R$ is a
+    rotation matrix if and only if
+    $R^T = R^{−1}$ and $\\mathrm{det} R = 1$.
+    
+    The set of all orthogonal matrices of size $n$ is a representation of a group known as the
+   _special orthogonal group_ $SO(n)$ (here $n=$2 or 3),
+   Every rotation maps an orthonormal basis of $\\mathbb{R}^n$ to another orthonormal basis.
+    """
+    
+    def __init__(self, matrix: Optional[Union[torch.Tensor, ArrayLike, 'RotationMatrix', list, tuple]] = None,
+                 dim: int = 3):
         """
-        Initialize the RotationMatrix.
+        Initialize the [`RotationMatrix`][pymagbot.math.geometry_base.RotationMatrix].
 
         Parameters
         ----------
@@ -80,26 +77,30 @@ class RotationMatrix(MatrixBase):
         return RotationMatrix(self.data.T, dim=self.dim)
 
 
-class Point(VectorBase):
-    """A  point representation in 2D or 3D space"""
+class Vertex(VectorBase):
+    """A  vertex representation in 2D or 3D space
     
-    def transform(self, rotation_matrix: RotationMatrix, translation: 'Point'):
+    In geometry, a vertex is like a point.
+    Specifically, a vertex is where two or more curves, lines or edges intersect or meet.
+    """
+    
+    def transform(self, rotation_matrix: RotationMatrix, translation: 'Vertex'):
         """
-        Transform the point using a rotation matrix and translation vector.
+        Transform the vertex using a rotation matrix and translation vector.
 
         Parameters
         ----------
         rotation_matrix : RotationMatrix
             The rotation matrix.
-        translation : Point
+        translation : Vertex
             The translation vector.
 
         Returns
         -------
-        Point
+        Vertex
             The transformed point.
         """
-        return Point(rotation_matrix.data @ self.data + translation.data, dim=self.dim)
+        return Vertex(rotation_matrix.data @ self.data + translation.data, dim=self.dim)
     
     def plot(self, fig=None, color='black', marker='circle', size=5, label=None):
         """Plot the point using  [Plotly](https://plotly.com/).
@@ -161,12 +162,16 @@ class Point(VectorBase):
 
 class Direction(VectorBase):
     """
-    A direction vector in 2D or 3D, which must be a unit vector.
+    A direction vector in 2D or 3D.
+    
+    In geometry, direction is the same as spatial direction or vector direction. It is the common characteristic of
+    vectors that can be made equal by scaling. Therefore, a direction is represented here as a _unit vector_ similar
+    to an axis. Two vectors that share the same direction are said to be codirectional or equidirectional.
     """
     
     def __init__(self, coordinates=None, dim: int = 3):
         """
-        Initialize the Direction.
+        Initialize a [`Direction`][pymagbot.math.geometry_base.Direction].
 
         Parameters
         ----------
@@ -208,7 +213,6 @@ class Direction(VectorBase):
         """
         try:
             import plotly.graph_objects as go
-            # import numpy as np
         except ImportError:
             raise ImportError("Plotly is required for plotting. Install with `pip install plotly`.")
         
@@ -216,7 +220,7 @@ class Direction(VectorBase):
             raise ValueError("Plotting is only supported for 2D and 3D direction vectors.")
         
         if origin is None:
-            origin = Point(torch.zeros(self.dim), dim=self.dim)
+            origin = Vertex(torch.zeros(self.dim), dim=self.dim)
         
         x0, y0 = origin.data[0].cpu().numpy(), origin.data[1].cpu().numpy()
         x1 = x0 + self.data[0].cpu().numpy() * scale
@@ -242,7 +246,7 @@ class Direction(VectorBase):
             return fig
 
 
-class RigidTransform:
+class RigidTransform(MatrixBase):
     """A rigid transformation (SE(2) or SE(3)) between two frames.
 
     **Rigid transformations** (or Euclidean transformation) include rotations, translations or any sequence of these.
@@ -256,7 +260,7 @@ class RigidTransform:
     
     def __init__(self, rotation=None, translation=None, dim: int = 3):
         """
-        Initialize the RigidTransform.
+        Initialize the [`RigidTransform`][pymagbot.math.geometry_base.RigidTransform].
 
         Parameters
         ----------
@@ -265,12 +269,16 @@ class RigidTransform:
         translation : array_like, optional
             The translation vector.
         dim : int, optional
-            The dimension of the transformation (2 or 3).
+            The dimension of the rigid transformation (2 or 3).
         """
         self.device = torch.device("cuda" if USE_CUDA else "cpu")
-        self.dim: int = dim
         self.R = RotationMatrix(rotation, dim=dim)
-        self.d = Point(translation, dim=dim)
+        self.d = Vertex(translation, dim=dim)
+        super().__init__(self.to_matrix(), dim=dim)
+    
+    def _validate(self):
+        if self.data.shape != (self.dim + 1, self.dim + 1):
+            raise ValueError(f"RigidTransform must be an homogeneous matrix with {self.dim + 1} dimensions.")
     
     def to_matrix(self) -> torch.Tensor:
         """
@@ -295,8 +303,4 @@ class RigidTransform:
         RigidTransform
             The inverse rigid transformation.
         """
-        R_inv = self.R.inverse()
-        d_inv = Point(-R_inv.data @ self.d.data)
-        # return RigidTransform(rotation=R_inv.data.cpu().numpy(), translation=d_inv.data.cpu().numpy())
-        
-        return RigidTransform(rotation=R_inv, translation=d_inv)
+        return RigidTransform(rotation=self.R.inverse(), translation=Vertex(-R_inv.data @ self.d.data), dim=self.dim)
