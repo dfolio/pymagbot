@@ -1,5 +1,5 @@
 torch == 2.5.0a0+gita8d6afb; platform_system == "Linux"
 --index-url https://download.pytorch.org/whl/cu126
 torch == 2.5.*; platform_system == "Windows"
-numpy == 1.26.0
+numpy == 1.26.*
 plotly == 5.24.*
