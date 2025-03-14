@@ -11,16 +11,17 @@ print(f"Robot's parent: {robot.parent.name}")
 ```
 
 ### Transformations
+
 ```python
-from pymagbot.math.geometry_base import RotationMatrix, Point
+from pymagbot.math.geometry_base import RotationMatrix, Vertex
 import plotly.graph_objects as go
 
 rot = RotationMatrix([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
-translation = Point([1, 2, 3])
+translation = Vertex([1, 2, 3])
 
 robot.move_to(translation)
 robot.rotate(rot)
 
-#fig = go.Figure()
+# fig = go.Figure()
 robot.plot().show()
 ```

@@ -14,22 +14,6 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#  pymagbot
-#  Copyright (c) 2025 dfolio
-#
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 # import numpy as np
 # from scipy.spatial.transform import Rotation as R
 import itertools
@@ -38,12 +22,12 @@ from typing import Optional
 
 import torch
 
-from pymagbot.math.geometry_base import Direction, Point, RigidTransform, RotationMatrix
+from pymagbot.math.geometry_base import Direction, RigidTransform, RotationMatrix, Vertex
 
 __all__ = ['Frame']
 
-# Dictionary to track known frames (ensuring uniqueness)
 known_frames: weakref.WeakValueDictionary[str, 'Frame'] = weakref.WeakValueDictionary()  # Prevent memory leaks
+"""Dictionary to track known frames and ensuring uniqueness."""
 
 WORLD_FRAME_NAMES: tuple[str, ...] = ('world', 'Frame_0', 'F0', 'workspace')
 """Known reserved name and aliases for world frame of reference"""
@@ -53,10 +37,16 @@ class Frame:
     """
     A frame defined by a [rigid transformation](https://en.wikipedia.org/wiki/Rigid_transformation) (SE(2) or SE(3)).
     
-    This class represents and handles frames in either 2D or 3D space.  In physics, a frame of reference (or reference
-    frame) is an abstract coordinate system whose origin and orientation are specified in physical space. This class
-    manages the frame's transformation relative to its parent frame, and maintains a registry of
-    known frames.
+    This class is used to represent and handle **frames of reference** (or reference frames) either in 2D or 3D space.
+    In physics, a frame is an abstract coordinate system. This means it has a starting point
+    (i.e. [`Vertex`][pymagbot.math.geometry_base.Vertex]) and [`Direction`][pymagbot.math.geometry_base.Direction]
+    specified in physical space. Specifically, the [`Frame`][pymagbot.math.frame.Frame] manages _moving frames_.
+    This is a frame of reference that moves with the observer (i.e. the  [`parent`][pymagbot.math.frame.Frame(parent)])
+    along a trajectory (i.e. a curve).
+    
+    Also, each [`Frame`][pymagbot.math.frame.Frame] has a **unique** (case-insensitive) name.
+    This name is stored in a dictionary called [`known frames`][pymagbot.math.frame.known_frames].
+    There is a sole global [world frame][pymagbot.math.frame.Frame.world] which is the parent (or ancestor) of all the others.
     
     """
     _id_counter = itertools.count(1)
@@ -79,14 +69,19 @@ class Frame:
         parent : Frame, optional
             The parent frame. If `None`, the world frame is used as the parent.
         transform : RigidTransform, optional
-            The rigid transformation. If `None`, an identity transformation is used.
+           The rigid transformation of the frame with respect to the parent frame.
+            If `None`, an identity transformation is used.
         dim : int, optional
             The dimension of the frame (2 or 3). Defaults to 3.
 
+        !!! seealso
+            [`RigidTransform`][pymagbot.math.geometry_base.RigidTransform] class for details about rigid transformation.
+            
         Returns
         -------
         Frame
-            The [`Frame`][pymagbot.math.frame.Frame] instance.  If a frame with the given name already exists, that instance is returned.
+            The [`Frame`][pymagbot.math.frame.Frame] instance.  If a frame with the given name already exists,
+            that instance is returned.
         """
         name = name.lower() if name else f"Frame_{next(cls._id_counter)}"
         if name in known_frames:
@@ -104,13 +99,18 @@ class Frame:
         Parameters
         ----------
         name : str, optional
-            The name of the frame. The name of a frame must be unique.  If `None`, a name is automatically generated.
+            The name of the frame. The name of a frame must be unique  (case-insensitive).
+            If `None`, a name is automatically generated.
         parent : Frame, optional
             The parent frame. If `None`, the [world][pymagbot.math.frame.Frame.world] frame is used as the parent.
         transform : RigidTransform, optional
-            The rigid transformation.
+            The rigid transformation of the frame with respect to the parent frame.
+            If `None`, an identity transformation is used.
         dim : int, optional
             The dimension of the frame (e.g. 2 or 3).
+        
+        !!! seealso
+            [`RigidTransform`][pymagbot.math.geometry_base.RigidTransform] class for details about rigid transformation.
         """
         
         if hasattr(self, 'initialized'):
@@ -197,11 +197,11 @@ class Frame:
         local : bool, optional
             Whether the translation is local to the parent frame or with respect to the world frame.
         """
-        if not isinstance(location, Point):
-            location = Point(location, dim=self.dim)
+        if not isinstance(location, Vertex):
+            location = Vertex(location, dim=self.dim)
         if local and self.parent:
-            self.transform.d = Point(self.parent.transform.R.data @ location.data + self.parent.transform.d.data,
-                                     dim=self.dim)
+            self.transform.d = Vertex(self.parent.transform.R.data @ location.data + self.parent.transform.d.data,
+                                      dim=self.dim)
         else:
             self.transform.d = location  # Set the translation directly in world coordinates
         self._propagate_changes()
@@ -231,8 +231,8 @@ class Frame:
         """Propagate the changes to the transform to all children."""
         for child in self.children:
             # Update child's translation and rotation based on parent's transformation
-            child.transform.d = Point(self.transform.R.data @ child.transform.d.data + self.transform.d.data,
-                                      dim=self.dim)
+            child.transform.d = Vertex(self.transform.R.data @ child.transform.d.data + self.transform.d.data,
+                                       dim=self.dim)
             child.transform.R = RotationMatrix(self.transform.R.data @ child.transform.R.data, dim=self.dim)
             child._propagate_changes()
     
@@ -283,8 +283,7 @@ class Frame:
         return self.transform.to_matrix()
     
     def __repr__(self):
-        return (f"name={self.name}, Frame(transform={self.transform.to_matrix().cpu().numpy()}, "
-                f"parent={self.parent.name})")
+        return (f"name={self.name}, parent={self.parent.name}), transform={self.transform.to_matrix().cpu().numpy()}")
     
     @staticmethod
     def known() -> weakref.WeakValueDictionary:
@@ -298,7 +297,7 @@ class Frame:
         """
         return known_frames
     
-    def plot(self, fig=None, scale=1.0, label: bool = True, name=None):
+    def plot(self, fig=None, scale=1.0, name=None):
         """Plot the frame using [Plotly](https://plotly.com/).
 
         Parameters
@@ -307,8 +306,6 @@ class Frame:
             The  [Plotly](https://plotly.com/) figure to add the frame to. If `None`, a new figure will be created.
         scale : float, optional
             The scale of the coordinate frame axes. Defaults to 1.0.
-        label : bool, optional
-            Whether to display the frame name as a label. Defaults to True.
         name : str, optional
             An optional name for the frame, used in labels.
 
@@ -342,7 +339,7 @@ class Frame:
         z_axis = R[:, 2] * scale
         
         # Plot the axes
-        origin_point = Point(data=torch.tensor(origin), dim=3)
+        origin_point = Vertex(data=torch.tensor(origin), dim=3)
         x_direction = Direction(coordinates=torch.tensor(x_axis), dim=3)
         y_direction = Direction(coordinates=torch.tensor(y_axis), dim=3)
         z_direction = Direction(coordinates=torch.tensor(z_axis), dim=3)
@@ -376,14 +373,14 @@ class Frame:
         except ImportError:
             raise ImportError("Plotly is required for plotting. Install with `pip install plotly`.")
         
-        if isinstance(axis, Point):
+        if isinstance(axis, Vertex):
             x, y, z = axis.data[0].cpu().numpy(), axis.data[1].cpu().numpy(), axis.data[2].cpu().numpy()
             trace = go.Scatter3d(
                 x=[x], y=[y], z=[z], mode='markers', marker=dict(color=color, symbol='circle', size=4), name=name
             )
         elif isinstance(axis, Direction):
             if origin is None:
-                origin = Point(torch.zeros(self.dim), dim=self.dim)
+                origin = Vertex(torch.zeros(self.dim), dim=self.dim)
             x0, y0, z0 = origin.data[0].cpu().numpy(), origin.data[1].cpu().numpy(), origin.data[2].cpu().numpy()
             x1, y1, z1 = x0 + axis.data[0].cpu().numpy(), y0 + axis.data[1].cpu().numpy(), z0 + axis.data[
                 2].cpu().numpy()
@@ -411,7 +408,6 @@ class Frame:
         """
         try:
             import plotly.graph_objects as go
-            import numpy as np  # Import numpy within the try block
         except ImportError:
             raise ImportError("Plotly is required for plotting.")
         
