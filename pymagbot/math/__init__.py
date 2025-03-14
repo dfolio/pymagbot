@@ -38,7 +38,7 @@ Mathematical components of PyMagBot.
 from pymagbot._config import USE_CUDA
 # Explicit imports for core modules
 from pymagbot.math.frame import Frame
-from pymagbot.math.geometry_base import Direction, Point, RigidTransform, RotationMatrix
+from pymagbot.math.geometry_base import Direction, Vertex, RigidTransform, RotationMatrix
 from pymagbot.math.matrix_base import MatrixBase, VectorBase
 
 __all__ = [
