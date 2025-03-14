@@ -248,7 +248,7 @@ class RigidTransform:
     **Rigid transformations** (or Euclidean transformation) include rotations, translations or any sequence of these.
     Any proper rigid transformation can be decomposed into a rotation followed by a translation.
     The set of proper rigid transformations is called special Euclidean group, denoted $SE(n)$ (e.g. n=2 or 3).
-    In `pymagbot`, any primitive is defined in a 3D space:  $\mathbb{R}^3$.
+    In `pymagbot`, any primitive is defined in a 3D space:  $\\mathbb{R}^3$.
     
     !!! seealso
         [`RotationMatrix`][pymagbot.math.geometry_base.RotationMatrix] class for details about the rotation.
