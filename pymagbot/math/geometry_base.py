@@ -274,11 +274,13 @@ class RigidTransform(MatrixBase):
         self.device = torch.device("cuda" if USE_CUDA else "cpu")
         self.R = RotationMatrix(rotation, dim=dim)
         self.d = Vertex(translation, dim=dim)
-        super().__init__(self.to_matrix(), dim=dim)
+        super().__init__(self.to_matrix())
+        self.dim = dim
     
     def _validate(self):
-        if self.data.shape != (self.dim + 1, self.dim + 1):
-            raise ValueError(f"RigidTransform must be an homogeneous matrix with {self.dim + 1} dimensions.")
+        if self.data.shape != (self.dim, self.dim):
+            raise ValueError(f"RigidTransform must be an homogeneous matrix with {self.dim - 1} dimensions"
+                             f"the shape is {self.data.shape}")
     
     def to_matrix(self) -> torch.Tensor:
         """
@@ -289,6 +291,7 @@ class RigidTransform(MatrixBase):
         torch.Tensor
             The homogeneous transformation matrix (shape (dim+1, dim+1)).
         """
+        #if self._data is not None:
         T = torch.eye(self.dim + 1, device=self.device, dtype=torch.float32)
         T[:self.dim, :self.dim] = self.R.data
         T[:self.dim, self.dim] = self.d.data
@@ -303,4 +306,5 @@ class RigidTransform(MatrixBase):
         RigidTransform
             The inverse rigid transformation.
         """
-        return RigidTransform(rotation=self.R.inverse(), translation=Vertex(-R_inv.data @ self.d.data), dim=self.dim)
+        r_inv = self.R.inverse()
+        return RigidTransform(rotation=r_inv, translation=Vertex(-r_inv.data @ self.d.data), dim=self.dim)

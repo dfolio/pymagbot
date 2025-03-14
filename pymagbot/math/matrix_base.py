@@ -62,6 +62,7 @@ class MatrixBase(ABC):
     """
     
     dim: Optional[int] = 3
+    _data: Optional[torch.Tensor] = None
     
     def __init__(self, data: Optional[Union[torch.Tensor, ArrayLike, 'MatrixBase', list, tuple]] = None,
                  dim: int = 3):
