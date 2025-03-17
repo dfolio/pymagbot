@@ -13,6 +13,19 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # import numpy as np
 # from scipy.spatial.transform import Rotation as R
@@ -40,14 +53,14 @@ class Frame:
     This class is used to represent and handle **frames of reference** (or reference frames) either in 2D or 3D space.
     In physics, a frame is an abstract coordinate system. This means it has a starting point
     (i.e. [`Vertex`][pymagbot.math.geometry_base.Vertex]) and [`Direction`][pymagbot.math.geometry_base.Direction]
-    specified in physical space. Specifically, the [`Frame`][pymagbot.math.frame.Frame] manages _moving frames_.
+    specified in physical space. Specifically, the [`Frame`][pymagbot.math.frame.Frame] class manages _moving frames_.
     This is a frame of reference that moves with the observer (i.e. the  [`parent`][pymagbot.math.frame.Frame(parent)])
     along a trajectory (i.e. a curve).
     
     Also, each [`Frame`][pymagbot.math.frame.Frame] has a **unique** (case-insensitive) name.
-    This name is stored in a dictionary called [`known frames`][pymagbot.math.frame.known_frames].
-    There is a sole global [world frame][pymagbot.math.frame.Frame.world] which is the parent (or ancestor) of all the others.
-    
+    This name is stored in a dictionary called [`known_frames`][pymagbot.math.frame.known_frames].
+    There is a sole global [world frame][pymagbot.math.frame.Frame.world] which is the parent (or ancestor) of all the
+    others.
     """
     _id_counter = itertools.count(1)
     """Unique ID generator for frames."""
@@ -58,7 +71,7 @@ class Frame:
     def __new__(cls, name: Optional[str] = None, parent: Optional['Frame'] = None,
                 transform: Optional[RigidTransform] = None, dim: int = 3) -> 'Frame':
         """
-        Create a new Frame instance or retrieve an existing one with the same name.
+        Create a new  [`Frame`][pymagbot.math.frame.Frame] instance or retrieve an existing one with the same name.
 
         This method ensures that only one [`Frame`][pymagbot.math.frame.Frame] instance exists for each unique name.
 
@@ -73,15 +86,11 @@ class Frame:
             If `None`, an identity transformation is used.
         dim : int, optional
             The dimension of the frame (2 or 3). Defaults to 3.
-
-        !!! seealso
-            [`RigidTransform`][pymagbot.math.geometry_base.RigidTransform] class for details about rigid transformation.
-            
         Returns
         -------
         Frame
             The [`Frame`][pymagbot.math.frame.Frame] instance.  If a frame with the given name already exists,
-            that instance is returned.
+            in  [`known_frames`][pymagbot.math.frame.known_frames] that instance is returned.
         """
         name = name.lower() if name else f"Frame_{next(cls._id_counter)}"
         if name in known_frames:
@@ -94,7 +103,7 @@ class Frame:
     def __init__(self, name: Optional[str] = None, parent: Optional['Frame'] = None,
                  transform: Optional[RigidTransform] = None, dim: int = 3):
         """
-        Initialize the [`Frame`][pymagbot.math.frame.Frame].
+        Initialize the [`Frame`][pymagbot.math.frame.Frame] instance.
 
         Parameters
         ----------
@@ -106,6 +115,11 @@ class Frame:
         transform : RigidTransform, optional
             The rigid transformation of the frame with respect to the parent frame.
             If `None`, an identity transformation is used.
+            
+            !!! seealso
+                [`RigidTransform`][pymagbot.math.geometry_base.RigidTransform] class for details about rigid
+                transformation.
+            
         dim : int, optional
             The dimension of the frame (e.g. 2 or 3).
         
@@ -143,7 +157,7 @@ class Frame:
         Returns
         -------
         bool
-            True if the frame's name is in the list of world frame names, False otherwise.
+            `True` if the frame's name is in the list of world frame names, `False` otherwise.
         """
         return self.name in WORLD_FRAME_NAMES
     
@@ -161,7 +175,7 @@ class Frame:
         Returns
         -------
         bool
-            True if the frame is a child, False otherwise.
+            `True` if the frame is a child, `False` otherwise.
         """
         return frame in self.children
     
@@ -177,7 +191,7 @@ class Frame:
         Returns
         -------
         bool
-            True if the frame is an ancestor, False otherwise.
+            `True` if the frame is an ancestor, `False` otherwise.
         """
         parent: Optional['Frame'] = self.parent
         while parent:
@@ -299,7 +313,12 @@ class Frame:
     
     def plot(self, fig=None, scale=1.0, name=None):
         """Plot the frame using [Plotly](https://plotly.com/).
-
+        
+        !!! note
+            Only 3D frame is currently supported.
+        
+        TODO: add support for 2D frame
+        
         Parameters
         ----------
         fig : plotly.graph_objects.Figure, optional
