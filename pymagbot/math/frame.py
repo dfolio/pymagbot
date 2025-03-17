@@ -82,10 +82,11 @@ class Frame:
         parent : Frame, optional
             The parent frame. If `None`, the world frame is used as the parent.
         transform : RigidTransform, optional
-           The rigid transformation of the frame with respect to the parent frame.
+            The rigid transformation of the frame with respect to the parent frame.
             If `None`, an identity transformation is used.
         dim : int, optional
             The dimension of the frame (2 or 3). Defaults to 3.
+            
         Returns
         -------
         Frame
@@ -122,9 +123,6 @@ class Frame:
             
         dim : int, optional
             The dimension of the frame (e.g. 2 or 3).
-        
-        !!! seealso
-            [`RigidTransform`][pymagbot.math.geometry_base.RigidTransform] class for details about rigid transformation.
         """
         
         if hasattr(self, 'initialized'):
