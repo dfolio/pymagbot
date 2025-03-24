@@ -13,13 +13,13 @@ print(f"Robot's parent: {robot.parent.name}")
 ### Transformations
 
 ```python
-from pymagbot.math.geometry_base import RotationMatrix, Vertex
+from pymagbot.math.spatial import RotationMatrix, Vertex
 import plotly.graph_objects as go
 
 rot = RotationMatrix([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
 translation = Vertex([1, 2, 3])
 
-robot.move_to(translation)
+robot.move(translation)
 robot.rotate(rot)
 
 # fig = go.Figure()
