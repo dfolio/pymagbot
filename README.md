@@ -18,7 +18,7 @@ It is designed for versatility, modularity, and GPU acceleration using [PyTorch]
 ## Usage
 
 
-See the [Usage](usage) section of the docs for more examples!
+See the [Usage](usage/index.md) section of the docs for more examples!
 Look also  to `scripts` folder.
 
 
