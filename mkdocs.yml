@@ -33,8 +33,9 @@ nav:
       - usage/index.md
       - usage/frame.md
   - API Reference:
-      - Geometry: math/geometry_base.md
+      - Spatial: math/spatial.md
       - Frame: math/frame.md
+      - Geometry:  math/geometry.md
   - Author's website: https://dfolio.fr/
 
 plugins:
@@ -56,6 +57,7 @@ plugins:
             - https://pytorch.org/docs/stable/objects.inv
             - https://numpy.org/doc/1.26/objects.inv
             - https://plotly.com/python-api-reference/objects.inv
+            - https://pandas.pydata.org/docs/objects.inv
           options:
             docstring_style: numpy
             docstring_options:
