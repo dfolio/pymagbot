@@ -31,11 +31,15 @@ nav:
     - License: license.md
   - Usage:
       - usage/index.md
+      - usage/spatial.md
       - usage/frame.md
   - API Reference:
-      - Spatial: math/spatial.md
-      - Frame: math/frame.md
-      - Geometry:  math/geometry.md
+      - Math:
+        - math/index.md
+        - Spatial: math/spatial.md
+        - Frames: math/frame.md
+        - Geometry:  math/geometry.md
+      #- Utils: utils.md
   - Author's website: https://dfolio.fr/
 
 plugins:
@@ -112,3 +116,4 @@ markdown_extensions:
 extra_javascript:
   - javascripts/mathjax.js
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+  - https://unpkg.com/mermaid@10.9.0/dist/mermaid.min.js

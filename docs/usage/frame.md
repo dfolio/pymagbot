@@ -1,4 +1,6 @@
-# Base Geometry and Frame usage
+## Frame usage
+
+TODO: further example of frames usage
 
 ### Creating Frames
 ```python
@@ -8,20 +10,4 @@ world = Frame.world # The world reference frame
 robot = Frame("robot", parent=world)
 
 print(f"Robot's parent: {robot.parent.name}")
-```
-
-### Transformations
-
-```python
-from pymagbot.math.spatial import RotationMatrix, Vertex
-import plotly.graph_objects as go
-
-rot = RotationMatrix([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
-translation = Vertex([1, 2, 3])
-
-robot.move(translation)
-robot.rotate(rot)
-
-# fig = go.Figure()
-robot.plot().show()
 ```
