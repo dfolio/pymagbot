@@ -16,3 +16,8 @@
 ::: pymagbot.math.spatial_primitives
     options:
       show_inheritance_diagram: true
+
+
+## Spatial helper functions
+
+::: pymagbot.math.transform
