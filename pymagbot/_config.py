@@ -13,16 +13,41 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""Define default behaviour and global variables in `pymagbot`"""
+
 
 import torch
 
-try:
+
+# Check if CUDA is available
+if torch.cuda.is_available():
+    USE_CUDA = True
     """ Global flag for (cuda) GPU availability """
-    USE_CUDA = torch.cuda.is_available()
-except:
+    DEVICE = torch.device('cuda')
+    """ Global torch device (cuda or cpu) """
+else:
     USE_CUDA = False
+    DEVICE = torch.device('cpu')
+
+torch.set_default_device(DEVICE)
 
 USE_FLOAT64 = False  # Set to True for double precision
 DTYPE = torch.float64 if USE_FLOAT64 else torch.float32
+"""Global type used for precision (float32 or float64).
+
+Note:
+-----
+Operations on [`torch.float64`][torch.float64] tensors are generally slower than on  [`torch.float32`][torch.float32]
+tensors on GPUs.
+"""
+torch.set_default_dtype(DTYPE)
+
+FORMAT: dict = {
+    "precision"    : 3,  # Number of decimal places
+    "sci_mode"     : False,  # Use scientific notation
+    "align_columns": True,  # Align columns for better readability
+    "max_width"    : 80  # Maximum width before line wrapping
+}
+""" Default format for printing tensors """
 
 __author__ = "D. Folio"
