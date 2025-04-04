@@ -50,6 +50,47 @@ The codebase is organized into several modules, each with its own purpose:
 - `LICENSE` – License file (GPLv3).
 - `CHANGELOG.md` – Change history.
 
+## Class and Module Organization Guidelines
+
+To ensure readability and maintainability, consider following these guidelines when organizing your classes and modules:
+
+1. Module-Level Organization:
+   - Global Constants and Imports:
+     Place module-level constants, configuration settings, and all import statements at the very top of the module.
+   - Public Variables:
+     After imports, define any public module-level variables.
+   - Private Variables:
+     Private module-level variables (those with a leading underscore) should follow public ones.
+
+2. Class-Level Organization:
+   - Class Attributes:
+     Define any class-level (static) attributes or constants at the very beginning of the class.
+   - Special Methods:
+     Place the constructor (`__init__`) and other special (magic) methods (`__str__`, `__repr__`, `__eq__`, etc.) at the top. These methods set the initial state and define core behaviors.
+   - Public Instance Methods:
+     List all public (non-special) instance methods next, including any methods that perform transformations (e.g., `to_dict`, `to_str()`, etc.).
+   - Properties:
+     Define properties using the @property decorator (and their associated setters/getters) following the public methods.
+   - Class Methods and Static Methods:
+     Group class methods (often those named `from_xxx()` or `create_xxx()`) and static methods together. 
+   - Private Methods:
+     Place helper methods (prefixed with an underscore) after all public and class/static methods.\
+     Note: Even if some private methods are invoked within the constructor or other special methods, it is still recommended to define them at the end. Clear comments in the constructor can explain their role without disrupting the overall structure.
+
+3. Additional Recommendations:
+   - Consistent Naming:
+     Use consistent naming conventions for methods, variables, and classes (e.g., lowercase with underscores for functions, CamelCase for classes).
+   - Documentation and Comments:
+     Include clear docstrings (preferably in NumPy style) for all public methods and classes. Inline comments should be used sparingly to explain non-obvious logic.
+   - Separation of Concerns:
+     Keep functions and classes focused on a single responsibility. If a module becomes too large, consider breaking it into submodules with clear purposes.
+   - Avoid duplicated code:
+     If you find yourself copying and pasting code, consider refactoring it into a separate function or class.
+   - Avoid Circular Dependencies:
+     Organize your code to minimize interdependencies between modules. Use import statements within functions if necessary to break cycles.
+
+Following these guidelines will help keep your codebase clean, modular, and easier to maintain as the project grows.
+
 ## Documentation Guidelines
 
 - **Docstrings:**  

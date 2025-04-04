@@ -61,7 +61,7 @@ Look also  to `scripts` folder.
 ### Quick Example
 
 ```python
-from pymagbot.math.frame import Frame
+from pymagbot.math.spatial.frame import Frame
 
 world = Frame(name="world")
 robot = Frame(name="robot", parent=world)
@@ -72,7 +72,7 @@ print(f"Robot's parent: {robot.parent.name}")
 For coordinate conversions:
 
 ```python
-from pymagbot.math.spatial_primitives import Vertex, VectorBase
+from pymagbot.math.spatial.primitives import Vertex, VectorBase
 from pymagbot.math.geometry.operations import vertex_cartesian_to_spherical
 
 # Create a vertex with Cartesian coordinates
