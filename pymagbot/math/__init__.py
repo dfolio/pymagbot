@@ -17,52 +17,53 @@
 """
 [pymagbot.math][] - Mathematical and geometric utilities for the `pymagbot` package.
 
-This module provides spatial transformations for **rigid body motion** in SE(2) and SE(3).
-It includes classes for rotation matrices and rigid transformations.
-
-Features
---------
-- `MatrixBase`: Abstract base class for tensor operations.
-- `RotationMatrix`: SO(2) and SO(3) rotation handling.
-- `RigidTransform`: SE(2) and SE(3) transformations.
-- `Frame`: Reference frames for hierarchical transformations.
-
-Example
--------
-```python
-from pymagbot.math.spatial import RotationMatrix
-_rotation = RotationMatrix.from_euler([0.1, 0.2, 0.3])
-print(_rotation.to_quaternion())
-```
+This package contains modules for mathematical operations, spatial transformations,
+and geometry objects used throughout PyMagBot.
 
 Submodules
 ----------
-- `math.matrix_base`: Abstract base class for matrix-like objects.
-- `math.spatial`: Rotation matrices and rigid transformations.
-- `math.spatial_primitives`: Basic spatial primitives (Vertex, Direction).
-- `math.frame`: Reference frames (coordinate systems).
-- `math.geometry`: Frame-dependent geometric objects (Coordinates, Mesh, etc.).
-- `math._transform`: Utility functions for transformation computations.
+- matrix_base: Defines the [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] class and related functionality.
+- spatial: Spatial transformations and primitives ([`RotationMatrix`][pymagbot.math.spatial.RotationMatrix],
+  [`RigidTransform`][pymagbot.math.spatial.RigidTransform],
+  [`Vertex`][pymagbot.math.spatial.Vertex], [`Direction`][pymagbot.math.spatial.Direction], and
+  [`Frame`][pymagbot.math.spatial.frame]).
+- geometry: Geometric objects ([`Coordinate`][pymagbot.math.geometry.Coordinate],
+  [`Span`][pymagbot.math.geometry.Span], [`Mesh`][pymagbot.math.geometry.Mesh],
+  [`EuclideanVector`][pymagbot.math.geometry.EuclideanVector], [`VectorField`][pymagbot.math.geometry.VectorField],
+  and coordinate system conversion utilities).
 
 Tip
 ---
-In `pymagbot` **both 2D and 3D transformations** are supported.
+In `pymagbot`, **both 2D and 3D** transformation and primitives are supported.
 
 """
 
-from pymagbot._config import DTYPE, USE_CUDA
-from pymagbot.math.frame import Frame, get_frame
-from pymagbot.math.geometry import Coordinate, EuclideanVector, GeometryBase, Mesh, Span, VectorField
 from pymagbot.math.matrix_base import MatrixBase
-from pymagbot.math.spatial import RigidTransform, RotationMatrix
-from pymagbot.math.spatial_primitives import Direction, Vertex
-from pymagbot.math.transform import quaternion_to_rotation, euler_to_rotation, vector_to_rotation
+from pymagbot.math.spatial import (
+    transform,
+    primitives,
+    frame,
+)
+from pymagbot.math.geometry import (
+    geometry_base,
+    coordinate,
+    span,
+    mesh,
+    vector,
+    vector_field,
+)
 
 __all__ = [
-    "USE_CUDA", "DTYPE",
-    "MatrixBase", "RotationMatrix", "RigidTransform",
-    "Frame", "get_frame",
-    "GeometryBase", "Coordinate", "Span", "Mesh", "EuclideanVector", "VectorField",
-    "Direction", "Vertex",
-    "vector_to_rotation", "quaternion_to_rotation", "euler_to_rotation"
+    "MatrixBase",
+    # Spatial submodules
+    "transform",
+    "primitives",
+    "frame",
+    # Geometry submodules
+    "geometry_base",
+    "coordinate",
+    "span",
+    "mesh",
+    "vector",
+    "vector_field",
 ]

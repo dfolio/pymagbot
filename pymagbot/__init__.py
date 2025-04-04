@@ -17,8 +17,9 @@
 """
 pymagbot - Python Module for Magnetic Microrobot Simulation and Control.
 
-This package provides tools for modeling and controlling magnetic microrobots.
-It includes submodules for handling  spatial transformations, reference frames, and geometric objects.
+PyMagBot is a Python module for modeling and control of magnetic microrobots. It provides
+a comprehensive suite of mathematical, physical, and device-level tools for simulation and control,
+with GPU acceleration via  [PyTorch](https://pytorch.org/).
 
 Submodules
 ----------
@@ -30,24 +31,23 @@ Submodules
 from pymagbot.utils.config import __author__, DEVICE, DTYPE, FORMAT, USE_CUDA
 from ._version import __version__
 
-__all__ = ['math', 'USE_CUDA', 'DEVICE', 'DTYPE', "FORMAT"]
+__all__ = ['math',
+           'utils',
+           'USE_CUDA', 'DEVICE', 'DTYPE', "FORMAT"]
 
-
-# __all__.extend(math.__all__)
-
-def _lazy_import():
-    """Lazy import to prevent circular dependencies."""
-    global MatrixBase, RotationMatrix, RigidTransform, Frame, get_frame
-    global GeometryBase, Coordinate, Span, Mesh, EuclideanVector, VectorField
-    global Direction, Vertex
-    global rotation_vector, quaternion_to_rotation, rotation_to_euler
-    
-    from pymagbot.math.matrix_base import MatrixBase
-    from pymagbot.math.spatial import RotationMatrix, RigidTransform
-    from pymagbot.math.frame import Frame, get_frame
-    from pymagbot.math.geometry import GeometryBase, Coordinate, Span, Mesh, EuclideanVector, VectorField
-    from pymagbot.math.spatial_primitives import Direction, Vertex
-    from pymagbot.math.transform import vector_to_rotation, quaternion_to_rotation, euler_to_rotation
-
-
-_lazy_import()
+# # __all__.extend(math.__all__)
+#
+# def _lazy_import():
+#     """Lazy import to prevent circular dependencies."""
+#     global MatrixBase, RotationMatrix, RigidTransform, Frame, get_frame
+#     global GeometryBase, Coordinate, Span, Mesh, EuclideanVector, VectorField
+#     global Direction, Vertex
+#     global rotation_vector, quaternion_to_rotation, rotation_to_euler
+#
+#     from pymagbot.math.matrix_base import MatrixBase
+#     from pymagbot.math.geometry import GeometryBase, Coordinate, Span, Mesh, EuclideanVector, VectorField
+#     from pymagbot.math.spatial import (RigidTransform, RotationMatrix, Direction, Vertex, Frame, get_frame,
+#                                        vector_to_rotation, quaternion_to_rotation, euler_to_rotation)
+#
+#
+# _lazy_import()
