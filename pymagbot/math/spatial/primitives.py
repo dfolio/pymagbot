@@ -17,8 +17,8 @@
 spatial_primitives - Submodule for base spatial primitives.
 
 This module defines spatial primitives for `pymagbot`, including vector-like objects such as
-[`VectorBase`][pymagbot.math.spatial_primitives.VectorBase], [`Vertex`][pymagbot.math.spatial_primitives.Vertex],
-and [`Direction`][pymagbot.math.spatial_primitives.Direction]. These classes provide fundamental representations
+[`VectorBase`][pymagbot.math.spatial.primitives.VectorBase], [`Vertex`][pymagbot.math.spatial.primitives.Vertex],
+and [`Direction`][pymagbot.math.spatial.primitives.Direction]. These classes provide fundamental representations
 and operations for handling spatial transformations and geometry in micro/nano-robotics.
 
 Notes
@@ -31,8 +31,8 @@ from typing import Optional, Union
 import torch
 from numpy.typing import ArrayLike
 
-from pymagbot._config import DEVICE, DTYPE
 from pymagbot.math.matrix_base import ensure_tensor, MatrixBase
+from pymagbot.utils.config import DEVICE, DTYPE
 
 __all__ = ['VectorBase', 'Vertex', 'Direction']
 
@@ -42,18 +42,27 @@ class VectorBase(MatrixBase):
     
     A vector is a tuple of $n$ (here $n=2$ or 3) real numbers has a natural structure of vector space defined by
     component-wise addition and scalar multiplication.
+    This class also provides common operations for vectors, including coordinate system conversions.
     
     Attributes
     ----------
     components : array_like, optional
         The components of vector.
     dim : int, optional
-        The dimension of the vector (e.g., 2D or 3D).
+        The dimension of the vector (e.g., 2D or 3D)
+    system : str, optional
+        The coordinate system of the vector. Allowed values are 'cartesian', 'cylindrical',
+        'spherical', or 'polar'. Default is 'cartesian'.
     """
     
+    # Allowed coordinate systems
+    _allowed_systems = {'cartesian', 'cylindrical', 'spherical', 'polar'}
+    _systems: str = 'cartesian'
+    
     def __init__(self, components: Optional[Union[torch.Tensor, ArrayLike, 'VectorBase', list, tuple]] = None,
-                 dim: int = None):
+                 dim: int = None, system: str = 'cartesian'):
         super().__init__(components, dim=dim)
+        self.system = system
     
     def _initialize_data(self, components: Optional[Union[torch.Tensor, ArrayLike, 'VectorBase', list, tuple]] = None):
         """Initialize a vecto-like.
@@ -90,13 +99,25 @@ class VectorBase(MatrixBase):
         if self.data.shape != (self.dim,):
             raise ValueError(f"Vector must have shape ({self.dim},), got {self.data.shape}.")
     
+    @property
+    def system(self) -> str:
+        """Get the coordinate system of the vector."""
+        return self._system
+    
+    @system.setter
+    def system(self, new_system: str):
+        new_system = new_system.lower()
+        if new_system not in self._allowed_systems:
+            raise ValueError(f"system must be one of {self._allowed_systems}, got {new_system}")
+        self._system = new_system
+    
     def __repr__(self) -> str:
         """String representation of the object."""
         return f"{self.__class__.__name__}(components={self.array.tolist()})"
     
     @property
-    def components(self):
-        """The [`VectorBase`][pymagbot.math.spatial_primitives.VectorBase] components. """
+    def components(self) -> torch.Tensor:
+        """The [`VectorBase`][pymagbot.math.spatial.primitives.VectorBase] components. """
         return self._data.squeeze()
     
     @components.setter
@@ -106,23 +127,33 @@ class VectorBase(MatrixBase):
     
     @property
     def x(self):
-        """The first element in the [`VectorBase`][pymagbot.math.spatial_primitives.VectorBase]'s data."""
+        """The first element in the [`VectorBase`][pymagbot.math.spatial.primitives.VectorBase]'s data."""
         return self.components[0]
     
     @property
     def y(self):
-        """The second element in the [`VectorBase`][pymagbot.math.spatial_primitives.VectorBase]'s data."""
+        """The second element in the [`VectorBase`][pymagbot.math.spatial.primitives.VectorBase]'s data."""
         return self.components[1]
     
     @property
     def z(self):
-        """The third element in the  [`VectorBase`][pymagbot.math.spatial_primitives.VectorBase]'s data."""
+        """The third element in the  [`VectorBase`][pymagbot.math.spatial.primitives.VectorBase]'s data."""
         if self.dim < 3:
             raise (IndexError(f"z Coordinates accessible in 3D!"))
         return self.components[2]
     
+    @property
+    def magnitude(self) -> torch.Tensor:
+        """Get the magnitude  (i.e. Euclidean norm) of the vector."""
+        return torch.linalg.vector_norm(self.components, ord=2)
+    
+    @magnitude.setter
+    def magnitude(self, mag):
+        """The vector magnitude (Euclidean norm)"""
+        self.scale(mag / self.magnitude)
+    
     def distance(self, other: 'VectorBase') -> torch.Tensor:
-        """Compute the Euclidean distance between two vectors.
+        """Compute the Euclidean distance between two components.
 
         Parameters
         ----------
@@ -132,10 +163,88 @@ class VectorBase(MatrixBase):
         Returns
         -------
         torch.Tensor
-            The Euclidean distance between the two vectors.
+            The Euclidean distance between the two components.
         """
         other = ensure_tensor(other, device=self.device)
         return torch.linalg.norm(self.data - other.data)
+    
+    def to_polar(self) -> 'VectorBase':
+        """
+        Convert a 2D vector from Cartesian to polar coordinates.
+
+        Returns
+        -------
+        VectorBase
+            A new instance with polar coordinates (r, phi), where r is the magnitude and phi is the angle.
+        """
+        # Assume self.data is [x, y]
+        if self.dim != 2:
+            raise ValueError("to_polar() only supports 2D vectors.")
+        x, y = self.to_list()
+        r = torch.sqrt(x ** 2 + y ** 2)
+        phi = torch.atan2(y, x)
+        return self.__class__([r, phi], dim=2, system='polar')
+    
+    def to_cylindrical(self) -> 'VectorBase':
+        """Convert the vector from Cartesian to cylindrical coordinates.
+
+        For a 3D vector, the cylindrical coordinates are defined as:
+            (r, phi, z)
+        where:
+            - r is the radial component,
+            - phi is the azimuthal angle (in radians),
+            - z is the vertical component.
+
+        For a 2D vector, z is omitted.
+
+        Returns
+        -------
+        VectorBase
+            The cylindrical components (r, phi, z) for 3D, or (r, phi, 0) for 2D.
+        """
+        
+        if self.system in ['cylindrical', 'polar']:
+            return self.clone()
+        if self.dim == 2:
+            return self.to_polar()
+        elif self.dim == 3:
+            r, phi = self.to_polar().to_list()
+            return VectorBase((r, phi, self.z), dim=self.dim, system='cylindrical')
+        else:
+            raise ValueError("to_cylindrical() only supports 2D or 3D vectors.")
+    
+    def to_spherical(self) -> 'VectorBase':
+        """
+        Convert the vector from Cartesian to spherical coordinates.
+
+        For a 2D vector, spherical conversion is equivalent to polar representation.
+        For a 3D vector, returns (r, theta, phi).
+
+        Returns
+        -------
+        VectorBase
+            A new instance with the vector in spherical (or polar for 2D) coordinates.
+        """
+        if self.dim == 2:
+            return self.to_polar()
+        elif self.dim == 3:
+            r, phi = self.to_polar().to_list()
+            theta = 0.0 if r == 0 else torch.acos(self.z / r)
+            return self.__class__([r, theta, phi], dim=3, system='spherical')
+        else:
+            raise ValueError("to_spherical() only supports 2D and 3D vectors.")
+        
+    def clone(self) -> 'VectorBase':
+        """
+        Create a deep copy of the vector.
+
+        Returns
+        -------
+        VectorBase
+            A new instance with the same data and coordinate system.
+        """
+        # openai: Assumes the subclass __class__ is appropriate
+        return self.__class__(self.data.clone(), dim=self.dim, system=self.system)
     
     def to_dict(self):
         return {"components": self.array.tolist()}
@@ -157,6 +266,9 @@ class Vertex(VectorBase):
         The vertex components
     dim : int
         The dimension of the rotation matrix (2 or 3).
+    system : str, optional
+        The coordinate system of the vector. Allowed values are 'cartesian', 'cylindrical',
+        'spherical', or 'polar'. Default is 'cartesian'.
     """
     
     def homogeneous(self) -> torch.Tensor:
@@ -267,7 +379,7 @@ class Direction(VectorBase):
     A direction vector in 2D or 3D.
 
     In geometry, direction is the same as spatial direction or vector direction. It is the common characteristic of
-    vectors that can be made equal by scaling. Therefore, a direction is represented here as a _unit vector_ similar
+    components that can be made equal by scaling. Therefore, a direction is represented here as a _unit vector_ similar
     to an axis.
     
     Attributes
@@ -276,11 +388,14 @@ class Direction(VectorBase):
         The direction components.
     dim : int
         The dimension of the rotation matrix (2 or 3).
+    system : str, optional
+        The coordinate system of the vector. Allowed values are 'cartesian', 'cylindrical',
+        'spherical', or 'polar'. Default is 'cartesian'.
     """
     
-    def __init__(self, components=None, dim: int = None):
+    def __init__(self, components=None, dim: int = None, system: str= 'cartesian'):
         """
-        Initialize a [`Direction`][pymagbot.math.spatial_primitives.Direction].
+        Initialize a [`Direction`][pymagbot.math.spatial.primitives.Direction].
 
         Parameters
         ----------
@@ -289,7 +404,7 @@ class Direction(VectorBase):
         dim : int, optional
             The dimension of the direction vector (2 or 3).
         """
-        super().__init__(components, dim=dim)
+        super().__init__(components, dim=dim, system=system)
         self.normalize()
     
     def normalize(self):
@@ -337,7 +452,7 @@ class Direction(VectorBase):
             raise ImportError("Plotly is required for plotting. Install with `pip install plotly`.")
         
         if self.dim not in [2, 3]:
-            raise ValueError("Plotting is only supported for 2D and 3D direction vectors.")
+            raise ValueError("Plotting is only supported for 2D and 3D direction components.")
         
         if origin is None:
             origin = Vertex(torch.zeros(self.dim), dim=self.dim)

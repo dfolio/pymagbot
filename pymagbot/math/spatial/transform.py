@@ -37,22 +37,22 @@ from typing import Optional, Union
 import torch
 from numpy.typing import ArrayLike
 
-from pymagbot._config import DEVICE, DTYPE
+from pymagbot.utils.config import DEVICE, DTYPE
 from pymagbot.math.matrix_base import ensure_tensor, MatrixBase, parse_dict
-from pymagbot.math.spatial_primitives import Direction, VectorBase, Vertex
-from pymagbot.math.transform import (euler_to_rotation, quaternion_to_rotation, rotation_to_euler,
-                                     rotation_to_quaternion, vector_to_rotation)
+from pymagbot.math.spatial.primitives import Direction, VectorBase, Vertex
+from pymagbot.math.spatial.operations import (euler_to_rotation, quaternion_to_rotation, rotation_to_euler,
+                                              rotation_to_quaternion, vector_to_rotation)
 
 __all__ = ['RotationMatrix', 'RigidTransform']
 
 
 def safe_vector_norm(vector: torch.Tensor) -> torch.Tensor:
-    """Calculate the norm of a vector with handling for zero vectors.
+    """Calculate the norm of a vector with handling for zero components.
 
     Returns
     -------
     torch.Tensor
-        The norm of the vector.  Returns 0 for zero vectors to avoid division by zero.
+        The norm of the vector.  Returns 0 for zero components to avoid division by zero.
     """
     norm = torch.linalg.norm(vector)
     return norm if norm > torch.finfo(DTYPE).eps else torch.tensor(0.0, dtype=DTYPE, device=vector.device)
@@ -194,7 +194,7 @@ class RotationMatrix(TransformBase):
         !!! note
             - If `other` is a [`RotationMatrix`][pymagbot.math.spatial.RotationMatrix], the result is a new rotation
               matrix.
-            - If `other` is a [`VectorBase`][pymagbot.math.spatial_primitives.VectorBase], the result is a `Vertex`.
+            - If `other` is a [`VectorBase`][pymagbot.math.spatial.primitives.VectorBase], the result is a `Vertex`.
             - If `other` is a [`RigidTransform`][pymagbot.math.spatial.RigidTransform], the result is a `RigidTransform`.
             - Otherwise, if `other` can be converted to a [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase],
               the result is a matrix.
@@ -493,7 +493,7 @@ class RigidTransform(TransformBase):
     
     @property
     def translation(self) -> Vertex:
-        """Returns translation [`Vertex`][pymagbot.math.spatial_primitives.Vertex]"""
+        """Returns translation [`Vertex`][pymagbot.math.spatial.primitives.Vertex]"""
         return self._translation
     
     @translation.setter

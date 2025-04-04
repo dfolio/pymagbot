@@ -13,6 +13,13 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+""" operations - spatial operations module
+
+This module provides functions for converting between different representations of rotations,
+including rotation vectors, quaternions, and Euler angles. It also includes functions for
+creating rotation matrices from these representations and extracting angles from rotation matrices.
+
+"""
 from typing import Union
 
 import numpy as np
@@ -20,7 +27,7 @@ import torch
 from numpy.typing import ArrayLike
 from scipy.spatial.transform import Rotation
 
-from pymagbot._config import DTYPE, USE_CUDA
+from pymagbot.utils.config import DTYPE, USE_CUDA
 from pymagbot.math.matrix_base import MatrixBase
 
 __all__ = ['vector_to_rotation', 'quaternion_to_rotation', 'euler_to_rotation',

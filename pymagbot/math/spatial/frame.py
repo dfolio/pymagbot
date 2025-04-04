@@ -45,8 +45,8 @@ import torch
 from numpy.typing import ArrayLike
 
 from pymagbot.math.matrix_base import parse_dict
-from pymagbot.math.spatial import RigidTransform, RotationMatrix
-from pymagbot.math.spatial_primitives import Direction, Vertex
+from pymagbot.math.spatial.transform import RigidTransform, RotationMatrix
+from pymagbot.math.spatial.primitives import Direction, Vertex
 
 __all__ = ['Frame', 'get_frame']
 
@@ -66,7 +66,7 @@ class Frame:
     
     This class is used to represent and handle **frames of reference** (or reference frames) either in 2D or 3D space.
     In physics, a frame is an abstract coordinate system. This means it has a starting point
-    (i.e. [`Vertex`][pymagbot.math.spatial_primitives.Vertex]) and [`Direction`][pymagbot.math.spatial_primitives.Direction]
+    (i.e. [`Vertex`][pymagbot.math.spatial.primitives.Vertex]) and [`Direction`][pymagbot.math.spatial.primitives.Direction]
     specified in physical space. Specifically, the [`Frame`][pymagbot.math.frame.Frame] class manages _moving frames_.
     This is a frame of reference that moves with the observer (i.e. the  [`parent`][pymagbot.math.frame.Frame(parent)])
     along a trajectory (i.e. a curve).
