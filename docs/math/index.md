@@ -8,9 +8,10 @@
 
 
 ## Quick Example
+
 ```python
 from pymagbot.math.spatial import RigidTransform, RotationMatrix
-from pymagbot.math.spatial_primitives import Vertex, Direction
+from pymagbot.math.spatial.primitives import Vertex, Direction
 
 # Create a rotation matrix
 R = RotationMatrix.from_euler([0.1, 0.2, 0.3])
@@ -26,3 +27,18 @@ d = Direction([1, 0, 0])
 print("Vertex:", p)
 print("Direction:", d)
 ```
+
+# Spatial API
+
+## Base Matrix Classes API
+
+::: pymagbot.math.matrix_base
+    options:
+      members: true
+      show_root_heading: false
+      show_source: false
+      show_signature: false
+      show_inheritance_diagram: true
+      show_root_heading: false
+      show_source: false
+      show_signature: false

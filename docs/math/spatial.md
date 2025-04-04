@@ -1,8 +1,3 @@
-# Spatial API
-
-## Base Matrix Classes API
-
-::: pymagbot.math.matrix_base
 
 ##   Spatial Transformation Classes API
 
@@ -13,11 +8,11 @@
 
 ##   Spatial Primitives Classes API
 
-::: pymagbot.math.spatial_primitives
+::: pymagbot.math.spatial.primitives
     options:
       show_inheritance_diagram: true
 
 
 ## Spatial helper functions
 
-::: pymagbot.math.transform
+::: pymagbot.math.spatial.transform

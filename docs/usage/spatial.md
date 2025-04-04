@@ -28,8 +28,9 @@ print("Rigid Transform Matrix:", T.as_matrix())
 ```
 
 ### Working with Spatial Primitives
+
 ```python
-from pymagbot.math.spatial_primitives import Vertex, Direction
+from pymagbot.math.spatial.primitives import Vertex, Direction
 
 # Define a vertex (point in space)
 p = Vertex([1, 2, 3])
