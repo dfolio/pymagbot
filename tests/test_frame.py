@@ -27,9 +27,9 @@ import unittest
 import torch
 
 from pymagbot.utils.config import DTYPE, DEVICE
-from pymagbot.math.frame import Frame
+from pymagbot.math.spatial.frame import Frame
 from pymagbot.math.spatial import RigidTransform, RotationMatrix
-from pymagbot.math.spatial_primitives import Vertex
+from pymagbot.math.spatial.primitives import Vertex
 
 
 class TestFrame(unittest.TestCase):

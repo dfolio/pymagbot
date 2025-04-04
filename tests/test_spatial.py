@@ -28,7 +28,7 @@ import torch
 
 from pymagbot.utils.config import DTYPE, FORMAT, DEVICE
 from pymagbot.math.spatial import RigidTransform, RotationMatrix
-from pymagbot.math.spatial_primitives import Vertex, Direction
+from pymagbot.math.spatial.primitives import Vertex, Direction
 
 
 class TestRotationMatrix(unittest.TestCase):
