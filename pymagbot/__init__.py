@@ -27,7 +27,7 @@ Submodules
 """
 
 # from pymagbot import math
-from ._config import __author__, DEVICE, DTYPE, FORMAT, USE_CUDA
+from pymagbot.utils.config import __author__, DEVICE, DTYPE, FORMAT, USE_CUDA
 from ._version import __version__
 
 __all__ = ['math', 'USE_CUDA', 'DEVICE', 'DTYPE', "FORMAT"]
