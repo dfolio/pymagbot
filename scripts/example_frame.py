@@ -19,7 +19,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from pymagbot.math.spatial import RotationMatrix
-from pymagbot.math.frame import Frame
+from pymagbot.math.spatial.frame import Frame
 
 
 # from pymagbot.math.geometry import RotationMatrix, Point, Direction
