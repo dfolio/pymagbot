@@ -13,8 +13,7 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-matrix_base - Submodule for matrix/tensor base objects.
+"""[matrix_base][pymagbot.math.matrix_base] - Submodule for matrix/tensor base objects.
 
 This module defines [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase], the core class for handling mathematical
 operations on tensors. It supports operations on **scalars, components, and matrices**
@@ -38,7 +37,7 @@ from numpy.typing import ArrayLike
 
 from pymagbot.utils.config import DEVICE, DTYPE, FORMAT
 
-__all__ = ['parse_dict', 'MatrixBase', 'ensure_tensor']
+# __all__ = ['parse_dict', 'MatrixBase', 'ensure_tensor']
 
 
 def parse_dict(dict_obj: Union[str, dict]) -> dict:
@@ -588,6 +587,7 @@ class MatrixBase(ABC):
         str
             The formatted matrix representation.
         """
+        classname = classname if not None else self.__class__.__name__
         prefix = prefix if not None else classname
         # Retrieve formatting settings
         precision = FORMAT.get("precision", 3)
@@ -597,7 +597,7 @@ class MatrixBase(ABC):
         # Format the matrix string
         formatted_matrix = np.array2string(
             self.array,
-            prefix= prefix,
+            # prefix= prefix, # FIXME: prefix is bugged with None!
             separator=', ',
             precision=precision,
             suppress_small=not sci_mode,  # Suppress scientific notation if sci_mode is False
