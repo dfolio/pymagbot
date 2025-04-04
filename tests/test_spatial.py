@@ -26,7 +26,7 @@ import unittest
 
 import torch
 
-from pymagbot._config import DTYPE, FORMAT, DEVICE
+from pymagbot.utils.config import DTYPE, FORMAT, DEVICE
 from pymagbot.math.spatial import RigidTransform, RotationMatrix
 from pymagbot.math.spatial_primitives import Vertex, Direction
 
@@ -197,7 +197,7 @@ class TestSpatialPrimitives(unittest.TestCase):
         torch.testing.assert_close(new_vertex.components, expected)
     
     def test_direction_normalization(self):
-        """Test that direction vectors are properly normalized."""
+        """Test that direction components are properly normalized."""
         expected = torch.tensor([0.0, 1.0, 0.0], dtype=DTYPE, device=DEVICE)
         torch.testing.assert_close(self.direction.components, expected)
         self.direction.components = [0.0, 10.0, 0.0]
