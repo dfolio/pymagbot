@@ -14,13 +14,43 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-spatial - Submodule for base spatial transformations.
+operations - Submodule for operation on spatial  primitives.
+
+This module provides helper functions for coordinate system conversions and basic
+vector operations. It is designed for use with `pymagbot` geometric primitives,
+accepting and returning objects of type `Vertex` and `VectorBase`.
+
+Supported conversions include:
+- Cartesian to Cylindrical and Spherical (for coordinate)
+- Cylindrical to Cartesian and Spherical
+- Spherical to Cartesian and Cylindrical
+
+Additionally, vector operations such as magnitude, dot product, and cross product
+are provided.
+
+Notes
+-----
+- In 2D, some functions will return scalar angles instead of multi-element vectors.
+- The functions assume that input objects are instances of `Vertex` or `VectorBase`
+  (defined\n  in `pymagbot/math/primitives.py`).
+  
+Examples
+--------
+```python
+from pymagbot.math.geometry.operations import vertex_cartesian_to_cylindrical
+from pymagbot.math.spatial.primitives import Vertex
+v = Vertex([1.0, 1.0, 2.0])
+rho, phi, z = vertex_cartesian_to_cylindrical(v)
+print(rho, phi, z)
+```
 """
 import torch
 
+from pymagbot.math.spatial.primitives import Vertex
+
 __all__ = [
     'fix_nan',
-    'point_cartesian2cylindrical', 'point_cartesian2spherical', 'point_cylindrical2cartesian',
+    'vertex_cartesian_to_cylindrical', 'point_cartesian2spherical', 'point_cylindrical2cartesian',
     'point_cylindrical2spherical', 'point_spherical2cartesian', 'point_spherical2cylindrical',
     'vector_spherical2cartesian', 'vector_cylindrical2cartesian',
     'vector_magnitude', 'dot_product', 'cross_product']
@@ -33,11 +63,32 @@ def fix_nan(b):
     return b
 
 
-def point_cartesian2cylindrical(x, y, z) -> tuple:
-    """Convert point Cartesian coordinates in cylindrical coordinates."""
+def _check_vertex(vertex: Vertex, dim: int = 3) -> list:
+    if vertex.dim != dim:
+        raise ValueError(f"Vertex dim {vertex.dim} does not match the required {dim}")
+    return vertex.to_list()
+
+
+def vertex_cartesian_to_cylindrical(vertex: Vertex) -> Vertex:
+    """Convert point Cartesian coordinates in cylindrical coordinates.
+    
+    Parameters
+    ----------
+    vertex : Vertex
+        A vertex with Cartesian coordinates [x, y, z].
+
+    Returns
+    -------
+    tuple
+        A tuple (rho, phi, z), where:
+            - rho is the radial distance,
+            - phi is the azimuthal angle (in radians),
+            - z is the height.
+    """
+    x, y, z = _check_vertex(vertex, dim=3)
     rho = vector_magnitude((x, y))
     phi = torch.arctan2(y, x)
-    return rho, phi, z
+    return Vertex([rho, phi, z])
 
 
 def point_cartesian2spherical(x, y, z) -> tuple:
@@ -120,7 +171,7 @@ def vector_magnitude(vector):
 
 
 def dot_product(vector1, vector2) -> float:
-    """Get the dot product between two vectors"""
+    """Get the dot product between two components"""
     if not (4 > len(vector1) > 1):
         raise ValueError('Vectors should have at least 2 no more then 3 components.')
     if len(vector1) == 3:
@@ -130,7 +181,7 @@ def dot_product(vector1, vector2) -> float:
 
 
 def cross_product(vector1, vector2):
-    """Cross product between two vectors"""
+    """Cross product between two components"""
     if not (4 > len(vector1) > 1) and not (4 > len(vector2) > 1):
         raise ValueError('Vectors should have at least 2 no more then 3 components.')
     if len(vector1) != len(vector2):
