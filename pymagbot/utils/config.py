@@ -31,17 +31,19 @@ DTYPE = torch.float64 if USE_FLOAT64 else torch.float32
 
 Note:
 -----
-Operations on [`torch.float64`][torch.float64] tensors are generally slower than on
-[`torch.float32`][torch.float32] tensors on GPUs.
+Operations on `torch.float64` tensors are generally slower than on`torch.float32` tensors on GPUs.
 """
 torch.set_default_dtype(DTYPE)
 
-FORMAT = {
+TENSOR_PRINT_FORMAT = {
     "precision"    : 3,  # Number of decimal places
     "sci_mode"     : False,  # Use scientific notation
     "align_columns": True,  # Align columns for better readability
     "max_width"    : 80  # Maximum width before line wrapping
 }
 """ Default format for printing tensors """
+
+DEFAULT_FMT = "json"
+"""Default format to be used for save/load"""
 
 __author__ = "D. Folio"
