@@ -13,17 +13,7 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-geometry - The `geometry` module help manage objects that are attached to a [`Frame`][pymagbot.math.frame.Frame].
-
-In `pymagbot` any *geometry object* is a mathematical concept, equivalent to a choice of
-language used to describe observations in a space. For instance, an observer in an
-observational _frame of reference_ can choose to employ any coordinate system
-(Cartesian, cylindrical, spherical, generalized...) to describe observations
-made from this frame. A change in the choice of this coordinate system does not
-change the observer's motion state, and therefore does not result in a change in
-the observer's observational reference frame.
-"""
+"""The `geometry` submodule to manage objects that are attached to a [`Frame`][pymagbot.math.frame.Frame]."""
 
 import itertools
 import weakref
@@ -33,10 +23,10 @@ from typing import Optional, Union
 import torch
 from numpy.typing import ArrayLike
 
-from pymagbot.utils.config import DTYPE, USE_CUDA
-from pymagbot.math.spatial.frame import Frame, get_frame
 from pymagbot.math.matrix_base import MatrixBase, parse_dict
+from pymagbot.math.spatial.frame import Frame, get_frame
 from pymagbot.math.spatial.primitives import Vertex
+from pymagbot.utils.config import DTYPE, USE_CUDA
 
 __all__ = ['GeometryBase', 'ComponentsBase']
 
@@ -314,7 +304,7 @@ class ComponentsBase(GeometryBase, ABC):
     """
     
     def __init__(self, components: Union[Vertex, ArrayLike, torch.Tensor, list, tuple],
-                 dim: int = None, frame: Frame = None, name: Optional[str] = None):
+                 dim: int = None, system: str = 'cartesian', frame: Frame = None, name: Optional[str] = None):
         """Initialize a [`ComponentsBase`][pymagbot.geometry.ComponentsBase].
 
         Parameters
@@ -323,6 +313,8 @@ class ComponentsBase(GeometryBase, ABC):
             The coordinates of the point.
         dim : int, optional
             The dimension of the coordinate (2 or 3).
+        system : str, optional
+            The coordinate system of the component (cartesian, spherical, or cylindrical).
         frame : Frame, optional
             The reference frame of the coordinate.
         name : str, optional
@@ -330,20 +322,38 @@ class ComponentsBase(GeometryBase, ABC):
         """
         
         self.dim: int = dim if dim is not None else len(components)
-        self._components = Vertex(components, dim=dim)
+        self._components = Vertex(components, dim=dim, system=system)
+        self._system = self._components.system
         super().__init__(data=self._components.data, dim=dim, frame=frame, name=name)
     
-    def _validate(self):
-        """
-        Validate that the data has the correct shape for a [`ComponentsBase`][pymagbot.math.geometry.ComponentsBase].
-
-        Raises
-        ------
-        ValueError
-            If the data shape is not equal to `(self.dim, )`.
-        """
-        if self.data.shape != (self.dim,):
-            raise ValueError(f"ComponentsBase must have shape ({self.dim},), got {self.data.shape}.")
+    def __repr__(self) -> str:
+        """String representation of the object."""
+        return (f"{self.__class__.__name__}(name='{self.name}', components={self._components.array.tolist()}, "
+                f"frame='{self.frame.name}')")
+    
+    def express_in_local(self) -> 'ComponentsBase':
+        """The components expressed in the (local)  [`Frame`][pymagbot.math.spatial.frame.Frame]."""
+        return self
+    
+    def to_cartesian(self) -> 'ComponentsBase':
+        """Convert the components to Cartesian coordinates."""
+        return self.__class__(components=self.components.to_cartesian(), dim=self.dim, frame=self.frame,
+                              name=f"{self.name}_cartesian")
+    
+    def to_polar(self) -> 'ComponentsBase':
+        """Convert the components to Polar coordinates."""
+        return self.__class__(components=self.components.to_polar(), dim=2,  # Polar exist only in 2D
+                              frame=self.frame, name=f"{self.name}_polar")
+    
+    def to_cylindrical(self) -> 'ComponentsBase':
+        """Convert the components to Cylindrical coordinates."""
+        return self.__class__(components=self.components.to_cylindrical(), dim=self.dim, frame=self.frame,
+                              name=f"{self.name}_cylindrical")
+    
+    def to_spherical(self) -> 'ComponentsBase':
+        """Convert the components to Spherical coordinates."""
+        return self.__class__(components=self.components.to_spherical(), dim=self.dim, frame=self.frame,
+                              name=f"{self.name}_spherical")
     
     @property
     def data(self) -> torch.Tensor:
@@ -352,13 +362,13 @@ class ComponentsBase(GeometryBase, ABC):
     
     @data.setter
     def data(self, value: Union[torch.Tensor, ArrayLike, 'MatrixBase', list, tuple]):
-        """
-        Set the underlying [PyTorch](https://pytorch.org/) tensor data.
+        """Set the underlying [PyTorch](https://pytorch.org/) tensor data.
 
         Parameters
         ----------
         value : array_like
-            The new data for the matrix.  It will be converted to a [PyTorch](https://pytorch.org/) tensor and moved to the appropriate device.
+            The new data for the matrix.  It will be converted to a [PyTorch](https://pytorch.org/) tensor and
+            moved to the appropriate device.
         """
         self._components.data = value
         self._data = self._initialize_data(self._components.data)
@@ -371,62 +381,114 @@ class ComponentsBase(GeometryBase, ABC):
     
     @components.setter
     def components(self, value: Union[torch.Tensor, ArrayLike, 'MatrixBase', list, tuple]):
-        """
-        Set the component data.
+        """Set the component data.
 
         Parameters
         ----------
         value : array_like
             The new coordinate's component.
         """
-        self._components.data = Vertex(value)
+        self._components.data = Vertex(value, dim=self.dim, system=self._system)
         self._data = self._initialize_data(self._components.data)
     
     @property
+    def system(self) -> str:
+        """Get the coordinate system of the vector."""
+        return self._system
+    
+    @system.setter
+    def system(self, new_system: str):
+        new_system = new_system.lower()
+        if new_system not in Vertex.allowed_systems:
+            raise ValueError(f"system must be one of {Vertex.allowed_systems}, got {new_system}")
+        self._system = new_system
+        self.data = self.components.to_system(self._system).components.data
+        
+    @property
     def x(self) -> torch.Tensor:
-        """The x-component of the coordinate."""
-        return self._components.data[0]
+        """The x-component of the `ComponentsBase`."""
+        return self.components.x
     
     @x.setter
-    def x(self, value: Union[float, int]):
-        """The x-component of the coordinate."""
-        self._components.data[0] = value
+    def x(self, value:  Union[float, int, torch.Tensor]):
+        """The x-component of the `ComponentsBase`."""
+        self.components.x = value
         self._data = self._initialize_data(self._components.data)
     
     @property
     def y(self) -> torch.Tensor:
-        """The x-component of the coordinate."""
-        return self._components.data[1]
+        """The x-component of the `ComponentsBase`."""
+        return self.components.y
     
     @y.setter
-    def y(self, value: Union[float, int]):
-        """The x-component of the coordinate."""
-        self._components.data[1] = value
+    def y(self, value:  Union[float, int, torch.Tensor]):
+        """The x-component of the `ComponentsBase`."""
+        self.components.y = value
         self._data = self._initialize_data(self._components.data)
     
     @property
     def z(self) -> torch.Tensor:
-        """The x-component of the coordinate."""
-        if self.dim < 3:
-            raise ValueError("Coordinate is not 3D")
-        return self._components.data[2]
+        """The z-component of the `ComponentsBase`."""
+        return self.components.z
     
     @z.setter
-    def z(self, value: Union[float, int]):
-        """The x-component of the coordinate."""
-        if self.dim < 3:
-            raise ValueError("Coordinate is not 3D")
-        self._components.data[2] = value
+    def z(self, value:  Union[float, int, torch.Tensor]):
+        """The z-component of the `ComponentsBase`."""
+        self.components.z = value
         self._data = self._initialize_data(self._components.data)
     
     @property
-    def express_in_local(self) -> Vertex:
-        """The local components in the (local) `frame`."""
-        return Vertex(self.data, dim=self.dim)
+    def rho(self) -> torch.Tensor:
+        """The rho-component of the `ComponentsBase`."""
+        return self.components.rho
+    
+    @rho.setter
+    def rho(self, value:  Union[float, int, torch.Tensor]):
+        """The rho-component of the `ComponentsBase`."""
+        self.components.rho = value
+        self._data = self._initialize_data(self._components.data)
+    
+    @property
+    def phi(self) -> torch.Tensor:
+        """The phi-component of the `ComponentsBase`."""
+        return self.components.phi
+    
+    @phi.setter
+    def phi(self, value:  Union[float, int, torch.Tensor]):
+        """The phi-component of the `ComponentsBase`."""
+        self.components.phi = value
+        self._data = self._initialize_data(self._components.data)
+    
+    @property
+    def theta(self) -> torch.Tensor:
+        """The theta-component of the `ComponentsBase`."""
+        return self.components.theta
+    
+    @theta.setter
+    def theta(self, value:  Union[float, int, torch.Tensor]):
+        """The theta-component of the `ComponentsBase`."""
+        self.components.theta = value
+        self._data = self._initialize_data(self._components.data)
+    
+    def to_dict(self, full: bool = True) -> dict:
+        """Converts the`ComponentsBase` object to a dictionary.
+
+        Parameters
+        ----------
+        full : bool, optional
+            Whether to export all the structure or only the relevant parts. Defaults to `True`.
+        Returns
+        -------
+        dict
+            The object structure as a dictionary.
+        """
+        dict_obj: dict = super().to_dict(full=False)
+        dict_obj['components'] = self.components.to_dict()
+        return dict_obj
     
     @classmethod
     def from_dict(cls, dict_obj: Optional[Union[dict, str]], known: Optional[dict] = None) -> 'ComponentsBase':
-        """ Create a [`Coordinate`][pymagbot.math.geometry.Coordinate] object from a dictionary.
+        """ Create a`ComponentsBase` object from a dictionary.
 
         Parameters
         ----------
@@ -441,15 +503,20 @@ class ComponentsBase(GeometryBase, ABC):
         Raises
         ------
         TypeError
-            If the `dict_obj` is not a Coordinate type.
-
+            If the `dict_obj` is not a ComponentsBase type.
         """
-        _, data, name, frame = cls._from_dict(dict_obj, known)
-        # data = dict_obj['coordinates'] if 'coordinates' in dict_obj else data
-        return cls(components=data, frame=frame, name=name)
+        _, _, name, frame = cls._from_dict(dict_obj, known)
+        _components = Vertex.from_dict(dict_obj["components"]) if "components" in dict_obj else None
+        return cls(components=_components, frame=frame, name=name)
     
-    def __repr__(self) -> str:
-        """String representation of the object."""
-        return (f"{self.__class__.__name__}(name='{self.name}', coordinates={self._components.array.tolist()}, "
-                f"frame='{self.frame.name}')")
+    def _validate(self):
+        """
+        Validate that the data has the correct shape for a`ComponentsBase`.
 
+        Raises
+        ------
+        ValueError
+            If the data shape is not equal to `(self.dim, )`.
+        """
+        if self.data.shape != (self.dim,):
+            raise ValueError(f"ComponentsBase must have shape ({self.dim},), got {self.data.shape}.")

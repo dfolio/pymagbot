@@ -13,8 +13,7 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-""" The `coordinate` module.
-"""
+"""The  submodule to manage coordinates."""
 
 from pymagbot.math.spatial.frame import Frame
 from pymagbot.math.geometry.geometry_base import ComponentsBase
@@ -60,36 +59,21 @@ class Coordinate(ComponentsBase):
     name : str
         The unique name of the geometry object.
     """
-    
-    @property
-    def cartesian(self) -> tuple:
-        """The Cartesian coordinates."""
-        return self.x, self.y, self.z
-    
-    @cartesian.setter
-    def cartesian(self, c):
-        """Set the Cartesian coordinates."""
-        if len(c) != self.dim:
-            raise ValueError(f"Expected {self.dim} components, got {len(c)}")
-        self.components = c
-    
-    # TODO: Add properties for data coordinate systems (spherical, cylindrical, etc.)
-    
-    def express_in_frame(self, frame: Frame):
-        """Express this `Coordinate` in a different `frame`.
+    def express_in_frame(self, frame: Frame) -> 'Coordinate':
+        """Express this `Coordinate` in the targeted [`Frame`][pymagbot.math.frame.spatial.Frame].
 
         This method does not change the underlying geometry but returns a *new*
         geometry object whose properties (e.g., coordinates, components) are
-        expressed with respect to the `target_frame`.
+        expressed with respect to the targeted  [`Frame`][pymagbot.math.frame.spatial.Frame].
 
         Parameters
         ----------
         frame : Frame
-            The frame in which to express the geometry.
+            The frame in which to express the coordinate.
         Returns
         -------
         Coordinate
-            A *new* `Coordinate` object with its properties expressed in the `target_frame`.
+            A *new* `Coordinate` object with its properties expressed in the [`Frame`][pymagbot.math.frame.spatial.Frame].
         """
-        new_coordinate = frame.local_rotation.data @ self._components.data + frame.local_translation.data
-        return Coordinate(new_coordinate, dim=self.dim, frame=frame, name=f"{self.name}_in_{frame.name}")
+        new_coordinates = self.components.apply_rigid_transform(frame.local_rotation.data, frame.local_translation.data)
+        return self.__class__(new_coordinates, dim=self.dim, frame=frame, name=f"{self.name}_in_{frame.name}")

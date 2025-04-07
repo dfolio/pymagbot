@@ -18,6 +18,7 @@
 from typing import Optional, Sequence, Union
 
 import torch
+from networkx.algorithms.sparsifiers import spanner
 from numpy.typing import ArrayLike
 
 from pymagbot.math.spatial.frame import Frame
@@ -42,7 +43,7 @@ class Mesh(GeometryBase):
     dim: int
         The base dimension (2 or 3) of the geometric object.
     frame : Frame
-        The reference frame of the geometry object. Default the [world frame][pymagbot.math.spatial.frame.Frame.world] is
+        The reference frame of the geometry object. Default the [`world` frame][pymagbot.math.spatial.frame.Frame.world] is
         used.
     name : str
         The unique name of the geometry object.
@@ -55,7 +56,7 @@ class Mesh(GeometryBase):
     --------
     ```python
     import torch
-    from pymagbot.math.frame import Frame
+    from pymagbot.math.geometry.frame import Frame
     from pymagbot.math.geometry import Mesh, Span
     
     #Define the mesh grid in 3D with 3 different span
@@ -117,11 +118,12 @@ class Mesh(GeometryBase):
         
     # Public Instance Methods
     def express_in_frame(self, frame: Frame) -> 'Mesh':
-        """Express this [`Mesh`][pymagbot.math.geometry.Mesh] in a different [`frame`][pymagbot.math.Frame].
+        """Express this [`Mesh`][pymagbot.math.geometry.Mesh] in a different
+        [`frame`][pymagbot.math.spatial.frame.Frame].
 
         This method does not change the underlying geometry but returns a *new*
         geometry object whose properties (e.g., coordinates, components) are
-        expressed with respect to the `target_frame`.
+        expressed with respect to the targeted [`frame`][pymagbot.math.spatial.frame.Frame].
 
         Parameters
         ----------
@@ -260,7 +262,10 @@ class Mesh(GeometryBase):
         TypeError
             If the `dict_obj` is not a Mesh type.
         """
-        _, data, name, frame = cls._from_dict(dict_obj, known)
+        if len(dict_obj) ==0:
+            return Mesh(spans=Span())
+        _, _, name, frame = cls._from_dict(dict_obj, known)
+        data = dict_obj.get( 'data', {'start': 0.0, 'stop': 1.0, 'num_samples': 1})
         spans: Sequence[Span] = [Span.from_dict(span) for span in data]
         return cls(spans=spans, dim=len(spans), name=name, frame=frame)
     
