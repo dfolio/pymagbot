@@ -35,7 +35,7 @@ import torch
 import yaml
 from numpy.typing import ArrayLike
 
-from pymagbot.utils.config import DEVICE, DTYPE, FORMAT
+from pymagbot.utils.config import DEVICE, DTYPE, TENSOR_PRINT_FORMAT, DEFAULT_FMT
 
 # __all__ = ['parse_dict', 'MatrixBase', 'ensure_tensor']
 
@@ -368,28 +368,6 @@ class MatrixBase(ABC):
             else:
                 dim = len(data)
         return dim
-    
-    @classmethod
-    def null(cls):
-        """`null` name
-        
-        Create a null [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] object.
-
-        Returns
-        -------
-        MatrixBase
-            A null matrix object.
-        """
-        return cls(torch.empty(cls.dim, device=DEVICE, dtype=DTYPE).fill_(float('nan')))
-    
-    def isnull(self) -> bool:
-        """Check if the MatrixBase is Null.
-        Returns
-        -------
-        bool
-            `True` if the MatrixBase is null, `False` otherwise.
-        """
-        return self == self.null()
         
     def to_list(self) -> List[Any]:
         """Convert the array data to a list.
@@ -401,7 +379,7 @@ class MatrixBase(ABC):
         """
         return self.array.tolist()
     
-    def to_dict(self) -> Dict[str, List[Any]]:
+    def to_dict(self) -> dict:
         """Serializes the matrix to a dictionary.
 
         Returns
@@ -457,7 +435,7 @@ class MatrixBase(ABC):
         return json.dumps(self.to_dict())
     
     @classmethod
-    def from_json(cls, json_str) -> 'MatrixBase':
+    def from_json(cls, json_str: (dict, str)) -> 'MatrixBase':
         """
         Loads a matrix from a JSON string.
 
@@ -484,7 +462,7 @@ class MatrixBase(ABC):
         return yaml.dump(self.to_dict())
     
     @classmethod
-    def from_yaml(cls, yaml_str) -> 'MatrixBase':
+    def from_yaml(cls, yaml_str: (dict, str)) -> 'MatrixBase':
         """Retrieve a matrix from a YAML string.
 
         Parameters
@@ -498,6 +476,51 @@ class MatrixBase(ABC):
             An instance of the matrix class.
         """
         return cls.from_dict(parse_dict(yaml_str))
+    
+    def save(self, filepath: str, fmt: str = DEFAULT_FMT) -> None:
+        """Save a [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] object to a file
+        
+        Other internal structure of [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] is first exported as
+        dictionary using the `to_dict` method.
+        
+        Parameters
+        ----------
+        filepath : str
+            Full path to the file to save.
+        fmt : str, optional
+            The format to save the matrix to.
+        """
+        from pymagbot.utils.io import save_to, save_to_json, save_to_yaml
+        if fmt == "json":
+            save_to_json(self.to_json(), filepath)
+        elif fmt == "yaml":
+            save_to_yaml(self.to_yaml, filepath)
+        else:
+            save_to(self.to_dict(), filepath, fmt=fmt)
+    
+    @classmethod
+    def load(cls, filepath: str, fmt: str = DEFAULT_FMT) -> 'MatrixBase':
+        """Load/Create a  [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] object  from a file.
+        
+        Parameters
+        ----------
+        filepath : str
+            Full path to the file to load.
+        fmt : str, optional
+            The format to load the matrix from.
+        
+        Returns
+        -------
+        MatrixBase
+            The `MatrixBase` object.
+        """
+        from pymagbot.utils.io import load_from, load_from_json, load_from_yaml
+        if fmt == "json":
+            return cls.from_json(load_from_json(filepath))
+        elif fmt == "yaml":
+            return cls.from_yaml(load_from_yaml(filepath))
+        else:
+            return cls.from_dict(load_from(filepath, fmt=fmt))
     
     def clone(self) -> 'MatrixBase':
         """Create a deep copy of the  [`MatrixBase`][pymagbot.math.matrix_base.MatrixBase] object.
@@ -590,10 +613,10 @@ class MatrixBase(ABC):
         classname = classname if not None else self.__class__.__name__
         prefix = prefix if not None else classname
         # Retrieve formatting settings
-        precision = FORMAT.get("precision", 3)
-        sci_mode = FORMAT.get("sci_mode", False)
-        align_columns = FORMAT.get("align_columns", True)
-        max_width = FORMAT.get("max_width", 80)
+        precision = TENSOR_PRINT_FORMAT.get("precision", 3)
+        sci_mode = TENSOR_PRINT_FORMAT.get("sci_mode", False)
+        align_columns = TENSOR_PRINT_FORMAT.get("align_columns", True)
+        max_width = TENSOR_PRINT_FORMAT.get("max_width", 80)
         # Format the matrix string
         formatted_matrix = np.array2string(
             self.array,
