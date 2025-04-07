@@ -15,10 +15,17 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """[pymagbot.math.geometry][] - geometry submodule
 
+In `pymagbot` a *geometry object* is a mathematical concept, equivalent to a choice of
+language used to describe observations in a space. For instance, an observer in an
+observational _frame of reference_ can choose to employ any coordinate system
+(Cartesian, cylindrical, spherical, generalized...) to describe observations
+made from this frame. A change in the choice of this coordinate system does not
+change the observer's motion state, and therefore does not result in a change in
+the observer's observational reference frame.
+
 This subpackage provides classes and utilities for geometric objects that are defined
 with respect to a given frame. It includes coordinate systems, meshes, vectors, and
 utilities for geometric transformations.
-
 """
 
 from pymagbot.math.geometry.coordinate import Coordinate

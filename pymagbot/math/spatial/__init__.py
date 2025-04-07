@@ -22,11 +22,13 @@ and a hierarchical frame system, as well as basic spatial primitives.
 
 from pymagbot.math.spatial.transform import RigidTransform, RotationMatrix
 from pymagbot.math.spatial.primitives import Direction, Vertex
-from pymagbot.math.spatial.operations import quaternion_to_rotation, euler_to_rotation, vector_to_rotation
+from pymagbot.math.spatial.operations import (check_as_tensor, check_as_array,matrix_is_orthogonal,
+                                              quaternion_to_rotation, euler_to_rotation, vector_to_rotation)
 
 
 __all__ = [
     "RotationMatrix", "RigidTransform",
     "Direction", "Vertex",
+    'check_as_tensor','check_as_array','matrix_is_orthogonal',
     "vector_to_rotation", "quaternion_to_rotation", "euler_to_rotation"
 ]
