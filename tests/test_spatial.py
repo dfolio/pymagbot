@@ -26,7 +26,7 @@ import unittest
 
 import torch
 
-from pymagbot.utils.config import DTYPE, FORMAT, DEVICE
+from pymagbot.utils.config import DTYPE, TENSOR_PRINT_FORMAT, DEVICE
 from pymagbot.math.spatial import RigidTransform, RotationMatrix
 from pymagbot.math.spatial.primitives import Vertex, Direction
 
@@ -36,6 +36,9 @@ class TestRotationMatrix(unittest.TestCase):
         """Set up test cases."""
         self.eye3 = torch.eye(3, device=DEVICE, dtype=DTYPE)
         self.identity = RotationMatrix()
+        self.rotation_matrix = torch.tensor([[0.866, -0.5, 0],
+                                             [0.5, 0.866, 0],
+                                             [0, 0, 1]], dtype=DTYPE, device=DEVICE)
         self.euler_rotation = RotationMatrix.from_euler([0.1, 0.2, 0.3])
         # self.axis_rotation = RotationMatrix.from_axis_angle([1, 0, 0], 0.5)
         self.small_angle = 1e-8
@@ -49,6 +52,10 @@ class TestRotationMatrix(unittest.TestCase):
         rotation_matrix = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
         rm = RotationMatrix(rotation_matrix)
         self.assertEqual(rm.data.tolist(), rotation_matrix)
+
+        rotation = RotationMatrix(self.rotation_matrix)
+        self.assertTrue(torch.allclose(rotation.data, self.rotation_matrix))
+        self.assertEqual(rotation.dim, 3)
     
     # def test_from_euler(self):
     #     """Test Euler angle conversion."""
@@ -86,7 +93,7 @@ class TestRotationMatrix(unittest.TestCase):
     
     def test_str_representation(self):
         """Test string representation with global formatting."""
-        FORMAT["precision"] = 2
+        TENSOR_PRINT_FORMAT["precision"] = 2
         r_str = repr(self.euler_rotation)
         self.assertIn("RotationMatrix(", r_str)  # Ensure class name appears
     
@@ -102,9 +109,8 @@ class TestRotationMatrix(unittest.TestCase):
                                 dtype=DTYPE, device=DEVICE)
         self.assertTrue(torch.allclose(r.data, expected, atol=1e-8))
     
-    def test_conversion_to_quaternion(self):
+    def test_quaternion(self):
         """Verify conversion from rotation matrix to quaternion."""
-        """Check if composing transformations works as expected."""
         
         r = RotationMatrix.from_euler([0.1, 0.2, 0.3])
         q = r.to_quaternion()
@@ -186,16 +192,37 @@ class TestSpatialPrimitives(unittest.TestCase):
     
     def setUp(self):
         """Initialize common test variables."""
+        self.point_data = torch.tensor([1.0, 2.0, 3.0], dtype=DTYPE, device=DEVICE)
         self.vertex = Vertex([1.0, 2.0, 3.0])
         self.direction = Direction([0.0, 1.0, 0.0])
     
+    def test_vertex_init(self):
+        """Test initialization of Vertex."""
+        point = Vertex(self.point_data)
+        self.assertTrue(torch.allclose(point.data, self.point_data))
+        self.assertEqual(point.dim, 3)
+        
     def test_vertex_translation(self):
         """Test translation of a vertex."""
         translation = torch.tensor([1.0, -1.0, 2.0], dtype=DTYPE, device=DEVICE)
-        new_vertex = self.vertex + translation
+        new_vertex: Vertex = self.vertex + translation
         expected = torch.tensor([2.0, 1.0, 5.0], dtype=DTYPE, device=DEVICE)
-        torch.testing.assert_close(new_vertex.components, expected)
+        torch.testing.assert_close(new_vertex.components.data, expected)
+
+    def test_vertex_transform(self):
+        """Test transforming a Vertex using RigidTransform."""
+        point = Vertex(self.point_data)
+        transform = RigidTransform(rotation=RotationMatrix.from_euler([0.2, 0.1, -0.3]),
+                                   translation=[0,0,0])
+        transformed_point = point.apply_rigid_transform(transform.rotation.data, transform.translation.data)
+        self.assertIsInstance(transformed_point, Vertex)
     
+    def test_direction_init(self):
+        """Test initialization of Direction."""
+        vector = Direction(self.point_data)
+        self.assertTrue(torch.allclose(vector.data, self.point_data / torch.linalg.norm(self.point_data)))
+        self.assertEqual(vector.dim, 3)
+        
     def test_direction_normalization(self):
         """Test that direction components are properly normalized."""
         expected = torch.tensor([0.0, 1.0, 0.0], dtype=DTYPE, device=DEVICE)

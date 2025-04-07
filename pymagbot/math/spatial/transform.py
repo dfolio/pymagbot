@@ -40,7 +40,8 @@ from numpy.typing import ArrayLike
 from pymagbot.utils.config import DEVICE, DTYPE
 from pymagbot.math.matrix_base import ensure_tensor, MatrixBase, parse_dict
 from pymagbot.math.spatial.primitives import Direction, VectorBase, Vertex
-from pymagbot.math.spatial.operations import (euler_to_rotation, quaternion_to_rotation, rotation_to_euler,
+from pymagbot.math.spatial.operations import (matrix_is_orthogonal,
+                                              euler_to_rotation, quaternion_to_rotation, rotation_to_euler,
                                               rotation_to_quaternion, vector_to_rotation)
 
 __all__ = ['RotationMatrix', 'RigidTransform']
@@ -94,7 +95,7 @@ class RotationMatrix(TransformBase):
     In linear algebra, a rotation matrix is a transformation matrix that is used to perform a rotation in Euclidean
     space. More specifically, they can be characterized as **orthogonal matrice**, that is, a _square matrix_ $R$ is a
     rotation matrix if and only if
-    $R^T = R^{−1}$ and $\\mathrm{det}(R) = \pm1$.
+    $R^T = R^{−1}$ and $\\mathrm{det}(R) = \\pm1$.
     
     The set of all orthogonal matrices of size $n$ is a representation of a group known as the
     _special orthogonal group_ $SO(n)$ (here $n=$2 or 3),
@@ -149,10 +150,7 @@ class RotationMatrix(TransformBase):
     
     def is_orthogonal(self, atol=1e-6) -> bool:
         """Check if the matrix is orthogonal."""
-        rot_mat = self.data
-        return (torch.allclose(rot_mat.T @ rot_mat, torch.eye(self.dim, dtype=DTYPE, device=self.device), atol=atol) and
-                torch.isclose(torch.abs(torch.det(rot_mat)),
-                              torch.tensor(1.0, dtype=DTYPE, device=self.device), atol=atol))
+        return matrix_is_orthogonal(self.data, dim=self.dim, atol=atol)
     
     def as_matrix(self) -> torch.Tensor:
         """Return the rotation matrix."""

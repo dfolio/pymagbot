@@ -27,14 +27,15 @@ import torch
 from numpy.typing import ArrayLike
 from scipy.spatial.transform import Rotation
 
-from pymagbot.utils.config import DTYPE, USE_CUDA
+from pymagbot.utils.config import DTYPE, USE_CUDA, DEVICE
 from pymagbot.math.matrix_base import MatrixBase
 
-__all__ = ['vector_to_rotation', 'quaternion_to_rotation', 'euler_to_rotation',
+__all__ = ['check_as_tensor','matrix_is_orthogonal',
+           'vector_to_rotation', 'quaternion_to_rotation', 'euler_to_rotation',
            'rotation_to_quaternion', 'rotation_to_euler', 'rotation_to_angle_2d']
 
 
-def check_as_tensor(x: Union[ArrayLike, torch.Tensor, MatrixBase, list, tuple], dim: int = None) -> torch.Tensor:
+def check_as_tensor(x: Union[ArrayLike, torch.Tensor, MatrixBase, list, tuple], dim: int = None) -> (torch.Tensor, int):
     """Helper to convert input to  (`torch`) tensor.
     
     Parameters
@@ -57,17 +58,17 @@ def check_as_tensor(x: Union[ArrayLike, torch.Tensor, MatrixBase, list, tuple], 
     if isinstance(x, MatrixBase):
         x = x.data
     elif not isinstance(x, torch.Tensor):
-        x = torch.as_tensor(x, dtype=DTYPE, device=torch.device("cuda" if USE_CUDA else "cpu"))
+        x = torch.as_tensor(x, dtype=DTYPE, device=DEVICE)
     if dim is None:
         dim = x.shape[0] if len(x.shape) == 1 else x.shape[0]
     if len(x.shape) == 2 and x.shape != (dim, dim):
         raise ValueError(f"Invalid {dim}D rotation matrix shape {x.shape}, expected {(dim, dim)}")
     elif len(x.shape) == 1 and x.shape[0] != dim:
         raise ValueError(f"Invalid {dim}D vector shape {x.shape}, expected {(dim,)}")
-    return x
+    return x, dim
 
 
-def check_as_array(x: Union[ArrayLike, torch.Tensor, MatrixBase, list, tuple], dim: int = None) -> ArrayLike:
+def check_as_array(x: Union[ArrayLike, torch.Tensor, MatrixBase, list, tuple], dim: int = None) -> (ArrayLike, int):
     """Helper to convert input to (`numpy`) array.
 
     Parameters
@@ -100,7 +101,15 @@ def check_as_array(x: Union[ArrayLike, torch.Tensor, MatrixBase, list, tuple], d
         raise ValueError(f"Invalid {dim}D rotation matrix shape {x.shape}, expected {(dim, dim)}")
     elif len(x.shape) == 1 and x.shape[0] != dim:
         raise ValueError(f"Invalid {dim}D vector shape {x.shape}, expected {(dim,)}")
-    return x
+    return x, dim
+
+
+def matrix_is_orthogonal(matrix, dim: int = None, atol=1e-6) -> bool:
+    """Check if the matrix is  orthogonal."""
+    rot_mat, dim = check_as_tensor(matrix, dim=dim)
+    return (torch.allclose(rot_mat.T @ rot_mat, torch.eye(dim, dtype=DTYPE, device=DEVICE), atol=atol) and
+            torch.isclose(torch.abs(torch.det(rot_mat)),
+                          torch.tensor(1.0, dtype=DTYPE, device=DEVICE), atol=atol))
 
 
 def vector_to_rotation(rot_vec: Union[ArrayLike, torch.Tensor, MatrixBase, list, tuple]) -> torch.Tensor:

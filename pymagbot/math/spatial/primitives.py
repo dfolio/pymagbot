@@ -30,19 +30,35 @@ from typing import Optional, Union
 
 import torch
 from numpy.typing import ArrayLike
+from pyparsing import lineStart
 
+# from pymagbot.math.geometry import ComponentsBase
 from pymagbot.math.matrix_base import ensure_tensor, MatrixBase
+from pymagbot.math.spatial.operations import check_as_tensor, matrix_is_orthogonal
 from pymagbot.utils.config import DEVICE, DTYPE
 
 __all__ = ['VectorBase', 'Vertex', 'Direction']
 
 
+# Define helper function at module level to avoid redundancy
+def _validate_system(system: str, allowed_systems: set) -> str:
+    """Validate if a given system is within the allowed systems."""
+    system = system.lower()
+    if system not in allowed_systems:
+        raise ValueError(f"System must be one of {allowed_systems}, got {system}")
+    return system
+    
+    
 class VectorBase(MatrixBase):
     """Base class for vector-like primitives.
     
     A vector is a tuple of $n$ (here $n=2$ or 3) real numbers has a natural structure of vector space defined by
     component-wise addition and scalar multiplication.
     This class also provides common operations for vectors, including coordinate system conversions.
+    
+    Notes
+    -----
+    All angles are expressed in radians (unless otherwise noted).
     
     Attributes
     ----------
@@ -56,101 +72,19 @@ class VectorBase(MatrixBase):
     """
     
     # Allowed coordinate systems
-    _allowed_systems = {'cartesian', 'cylindrical', 'spherical', 'polar'}
+    allowed_systems = {'cartesian', 'cylindrical', 'spherical', 'polar'}
     _systems: str = 'cartesian'
     
     def __init__(self, components: Optional[Union[torch.Tensor, ArrayLike, 'VectorBase', list, tuple]] = None,
                  dim: int = None, system: str = 'cartesian'):
-        super().__init__(components, dim=dim)
-        self.system = system
-    
-    def _initialize_data(self, components: Optional[Union[torch.Tensor, ArrayLike, 'VectorBase', list, tuple]] = None):
-        """Initialize a vecto-like.
         
-        Parameters
-        ----------
-        components : array_like, optional
-            The coordinates to initialize the vector with.
-
-        Returns
-        -------
-        torch.Tensor
-            The initialized tensor representation of the vector.
-        """
-        if components is None:
-            # self.dim = self.dim if self.dim is not None else 3
-            return torch.zeros((self.dim,), dtype=DTYPE, device=self.device)
-        if isinstance(components, VectorBase):
-            data = components.data.clone()
-        elif isinstance(components, torch.Tensor):
-            data = components.clone()
-        else:
-            data = torch.as_tensor(components, dtype=DTYPE, device=self.device)
-        return data
-    
-    def _validate(self):
-        """Validate that the vector-like has the correct shape.
-
-        Raises
-        ------
-        ValueError
-            If the vector-like shape is not equal to `(self.dim,)`.
-        """
-        if self.data.shape != (self.dim,):
-            raise ValueError(f"Vector must have shape ({self.dim},), got {self.data.shape}.")
-    
-    @property
-    def system(self) -> str:
-        """Get the coordinate system of the vector."""
-        return self._system
-    
-    @system.setter
-    def system(self, new_system: str):
-        new_system = new_system.lower()
-        if new_system not in self._allowed_systems:
-            raise ValueError(f"system must be one of {self._allowed_systems}, got {new_system}")
-        self._system = new_system
+        _validate_system(system, self.allowed_systems)
+        super().__init__(components, dim=dim)
+        self._system = system  # Use the private attribute directly
     
     def __repr__(self) -> str:
         """String representation of the object."""
         return f"{self.__class__.__name__}(components={self.array.tolist()})"
-    
-    @property
-    def components(self) -> torch.Tensor:
-        """The [`VectorBase`][pymagbot.math.spatial.primitives.VectorBase] components. """
-        return self._data.squeeze()
-    
-    @components.setter
-    def components(self, value):
-        """Setter for the components."""
-        self.data = value
-    
-    @property
-    def x(self):
-        """The first element in the [`VectorBase`][pymagbot.math.spatial.primitives.VectorBase]'s data."""
-        return self.components[0]
-    
-    @property
-    def y(self):
-        """The second element in the [`VectorBase`][pymagbot.math.spatial.primitives.VectorBase]'s data."""
-        return self.components[1]
-    
-    @property
-    def z(self):
-        """The third element in the  [`VectorBase`][pymagbot.math.spatial.primitives.VectorBase]'s data."""
-        if self.dim < 3:
-            raise (IndexError(f"z Coordinates accessible in 3D!"))
-        return self.components[2]
-    
-    @property
-    def magnitude(self) -> torch.Tensor:
-        """Get the magnitude  (i.e. Euclidean norm) of the vector."""
-        return torch.linalg.vector_norm(self.components, ord=2)
-    
-    @magnitude.setter
-    def magnitude(self, mag):
-        """The vector magnitude (Euclidean norm)"""
-        self.scale(mag / self.magnitude)
     
     def distance(self, other: 'VectorBase') -> torch.Tensor:
         """Compute the Euclidean distance between two components.
@@ -168,30 +102,73 @@ class VectorBase(MatrixBase):
         other = ensure_tensor(other, device=self.device)
         return torch.linalg.norm(self.data - other.data)
     
-    def to_polar(self) -> 'VectorBase':
+    def to_list(self) -> list:
+        """Convert the vector-like object to a list."""
+        return [x for x in self.data]
+    
+    def to_cartesian(self) -> 'VectorBase':
+        """Convert the vector to Cartesian coordinates.
+
+        Returns
+        -------
+        VectorBase
+            A new instance with Cartesian coordinates (x, y, z).
         """
-        Convert a 2D vector from Cartesian to polar coordinates.
+        if self.system == 'cartesian':
+            return self
+        
+        if self.dim == 2:
+            if self.system == 'polar':
+                r,  phi = self.to_list()
+                x = r * torch.cos(phi)
+                y = r * torch.sin(phi)
+                return self.__class__([x, y], dim=2, system='cartesian')
+            else:
+                raise NotImplementedError(f"Conversion from {self.system} to cartesian not supported")
+        elif self.dim == 3:
+            if self.system == 'cylindrical':
+                rho,  phi, z = self.to_list()
+                x = rho * torch.cos(phi)
+                y = rho * torch.sin(phi)
+                return self.__class__([x, y, z], dim=3, system='cartesian')
+            elif self.system == 'spherical':
+                r,  phi, theta = self.to_list()
+                x = r * torch.sin(theta) * torch.cos(phi)
+                y = r * torch.sin(theta) * torch.sin(phi)
+                z = r * torch.cos(theta)
+                return self.__class__([x, y, z], dim=3, system='cartesian')
+            else:
+                raise NotImplementedError(f"Conversion from {self.system} to cartesian not supported")
+        else:
+            raise ValueError("to_cartesian() only supports 2D and 3D vectors.")
+    
+    def to_polar(self) -> 'VectorBase':
+        """Convert a 2D vector to polar coordinates.
 
         Returns
         -------
         VectorBase
             A new instance with polar coordinates (r, phi), where r is the magnitude and phi is the angle.
         """
-        # Assume self.data is [x, y]
         if self.dim != 2:
             raise ValueError("to_polar() only supports 2D vectors.")
-        x, y = self.to_list()
-        r = torch.sqrt(x ** 2 + y ** 2)
-        phi = torch.atan2(y, x)
-        return self.__class__([r, phi], dim=2, system='polar')
+        if self.system == 'polar':
+            return self
+        if self.system == 'cartesian':
+            x, y = self.to_list()
+            r = self.magnitude
+            phi = torch.atan2(y, x)
+            return self.__class__([r, phi], dim=2, system='polar')
+        else:
+            raise NotImplementedError(f"Conversion from {self.system} to polar not supported.")
     
     def to_cylindrical(self) -> 'VectorBase':
-        """Convert the vector from Cartesian to cylindrical coordinates.
+        """Convert the vector to cylindrical coordinates.
 
         For a 3D vector, the cylindrical coordinates are defined as:
             (r, phi, z)
         where:
-            - r is the radial component,
+            - r is the radial component to the z-axis,
             - phi is the azimuthal angle (in radians),
             - z is the vertical component.
 
@@ -202,38 +179,110 @@ class VectorBase(MatrixBase):
         VectorBase
             The cylindrical components (r, phi, z) for 3D, or (r, phi, 0) for 2D.
         """
-        
         if self.system in ['cylindrical', 'polar']:
-            return self.clone()
+            return self
         if self.dim == 2:
-            return self.to_polar()
+            polar_vec = self.to_polar()
+            return self.__class__(polar_vec.components, dim=self.dim, system='cylindrical')
         elif self.dim == 3:
-            r, phi = self.to_polar().to_list()
-            return VectorBase((r, phi, self.z), dim=self.dim, system='cylindrical')
+            if self.system == 'cartesian':
+                rho = torch.sqrt(self.x**2 + self.y**2)
+                phi = torch.atan2(self.y, self.x)
+                return self.__class__([rho, phi, self.z], dim=self.dim, system='cylindrical')
+            elif self.system == 'spherical':
+                rho = self.r * torch.sin(self.theta)
+                z = self.r * torch.cos(self.theta)
+                return self.__class__([rho, self.phi, z], dim=self.dim, system='cylindrical')
+            else:
+                raise NotImplementedError(f"Conversion from {self.system} to cylindrical not supported")
         else:
             raise ValueError("to_cylindrical() only supports 2D or 3D vectors.")
     
     def to_spherical(self) -> 'VectorBase':
-        """
-        Convert the vector from Cartesian to spherical coordinates.
+        """Convert the vector to spherical coordinates.
 
         For a 2D vector, spherical conversion is equivalent to polar representation.
-        For a 3D vector, returns (r, theta, phi).
+        For a 3D vector, returns (r, phi, theta), with
+        - r is the radial or radius distance component
+        - phi is the azimuthal angle component (in radians).
+        - theta is the polar angle component (in radians),
 
         Returns
         -------
         VectorBase
             A new instance with the vector in spherical (or polar for 2D) coordinates.
         """
+        if self.system == 'spherical':
+            return self
+        
         if self.dim == 2:
             return self.to_polar()
         elif self.dim == 3:
-            r, phi = self.to_polar().to_list()
-            theta = 0.0 if r == 0 else torch.acos(self.z / r)
-            return self.__class__([r, theta, phi], dim=3, system='spherical')
+            if self.system == 'cartesian':
+                r = self.magnitude
+                theta = torch.acos(self.z / r)
+                phi = torch.atan2(self.y, self.x)
+                return self.__class__([r, phi, theta], dim=3, system='spherical')
+            elif self.system == 'cylindrical':
+                r = self.r
+                theta = torch.atan2(self.rho, self.z)
+                phi = self.phi
+                return self.__class__([r, phi, theta], dim=3, system='spherical')
+            else:
+                raise NotImplementedError(f"Conversion from {self.system} to spherical not supported")
         else:
             raise ValueError("to_spherical() only supports 2D and 3D vectors.")
+    
+    def to_system(self, system: str) -> 'VectorBase':
+        """Helper function to convert the vector to another system coordinates."""
+        if system == 'cartesian':
+            return self.to_cartesian()
+        if system == 'polar' and self.dim == 2:
+            return self.to_polar()
+        if system == 'cylindrical':
+            return self.to_cylindrical()
+        if system == 'spherical':
+            return self.to_spherical()
+        raise ValueError(f"Conversion from {self.system} to {system} not supported.")
+    
+    def apply_rigid_transform(self, rotation_matrix:Union[torch.Tensor, ArrayLike, 'MatrixBase', list, tuple],
+                              translation_vector: Union[torch.Tensor, ArrayLike, 'VectorBase', list, tuple]) -> \
+            'VectorBase':
+        """Helper to apply a rigid transformation to the vector.
+
+        Applies a rotation followed by a translation, optimizing tensor operations.
+
+        Parameters
+        ----------
+        rotation_matrix : array_like
+            A rotation matrix.
+        translation_vector : torch.Tensor
+            A translation vector.
+
+        Returns
+        -------
+        VectorBase
+            A new VectorBase object with the transformed coordinates.
+        """
+        if self.dim not in (2, 3):
+            raise ValueError("Rigid transformation is only supported for 2D or 3D vectors.")
+        rotation_matrix = check_as_tensor(rotation_matrix)
+        if not matrix_is_orthogonal(rotation_matrix):
+            raise ValueError("Rotation matrix is not orthogonal.")
+        translation_vector = check_as_tensor(translation_vector)
+        if rotation_matrix.shape[0] != self.dim or translation_vector.shape[0] != self.dim:
+            raise ValueError("Dimension mismatch.")
         
+        cartesian_vector = self.to_cartesian()
+        components = cartesian_vector.components
+        # Ensure correct dimensions for matrix multiplication
+        if components.ndim == 1:
+            components = components.unsqueeze(0)  # Reshape to (1, dim) row vector
+        
+        transformed_components = (rotation_matrix @ components.T).T + translation_vector
+        transformed_cartesian = self.__class__(transformed_components, dim=self.dim, system='cartesian')
+        return transformed_cartesian.to_system(self.system)
+    
     def clone(self) -> 'VectorBase':
         """
         Create a deep copy of the vector.
@@ -247,13 +296,217 @@ class VectorBase(MatrixBase):
         return self.__class__(self.data.clone(), dim=self.dim, system=self.system)
     
     def to_dict(self):
-        return {"components": self.array.tolist()}
+        return {"components": self.array.tolist(), "system": self.system}
     
     @classmethod
-    def from_dict(cls, data):
-        return cls(data["components"])
+    def from_dict(cls, data: dict) -> 'VectorBase':
+        return cls(data["components"], system=data.get("system", "cartesian"))
+    
+    @property
+    def system(self) -> str:
+        """Get the coordinate system of the vector."""
+        return self._system
+    
+    @system.setter
+    def system(self, new_system: str):
+        self._system = _validate_system(new_system, self.allowed_systems)
+        self.data = self.to_system(self._system).components.data
+    
+    @property
+    def components(self) -> torch.Tensor:
+        """The [`VectorBase`][pymagbot.math.spatial.primitives.VectorBase] components. """
+        return self._data.squeeze()
+    
+    @components.setter
+    def components(self, value: Union[torch.Tensor, ArrayLike, 'VectorBase', list, tuple]):
+        """Setter for the components."""
+        self.data = value
+    
+    @property
+    def x(self) -> torch.Tensor:
+        """Get the x-component of the vector Cartesian."""
+        if self.system != 'cartesian':
+            raise AttributeError("x-component is only valid for Cartesian system.")
+        return self.components[0]
+    
+    @x.setter
+    def x(self, value:  Union[float, int, torch.Tensor]):
+        """Set the x-component of the vector Cartesian."""
+        if self.system != 'cartesian':
+            raise AttributeError("x-component is only valid for Cartesian system.")
+        self._set_component(0, value)
+    
+    @property
+    def y(self) -> torch.Tensor:
+        """Get the y-component of the vector (Cartesian)."""
+        if self.system != 'cartesian':
+            raise AttributeError("y-component is only valid for Cartesian system.")
+        if self.dim < 2:
+            raise AttributeError("y-component is only valid for 2D or 3D vectors.")
+        return self.components[1]
+    
+    @y.setter
+    def y(self, value:  Union[float, int, torch.Tensor]):
+        """Set the y-component of the vector (Cartesian)."""
+        if self.system != 'cartesian':
+            raise AttributeError("y-component is only valid for Cartesian system.")
+        if self.dim < 2:
+            raise AttributeError("y-component is only valid for 2D or 3D vectors.")
+        self._set_component(1, value)
+    
+    @property
+    def z(self) -> torch.Tensor:
+        """Get the z-component of the vector (Cartesian or Cylindrical)."""
+        if self.system not in ('cartesian', 'cylindrical'):
+            raise AttributeError("z-component is only valid for Cartesian and Cylindrical systems.")
+        if self.dim < 3:
+            raise AttributeError("z-component is only valid for 3D vectors.")
+        return self.components[2]
+    
+    @z.setter
+    def z(self, value:  Union[float, int, torch.Tensor]):
+        """Set the z-component of the vector (Cartesian or Cylindrical)."""
+        if self.system not in ('cartesian', 'cylindrical'):
+            raise AttributeError("z-component is only valid for Cartesian and Cylindrical systems.")
+        if self.dim < 3:
+            raise AttributeError("z-component is only valid for 3D vectors.")
+        self._set_component(2, value)
+    
+    @property
+    def rho(self) -> torch.Tensor:
+        """Get the rho (radial distance from the z-axi)  component of the vector (Cylindrical)."""
+        if self.system != 'cylindrical':
+            raise AttributeError("rho-component is only valid for Cylindrical system.")
+        if self.dim < 2:
+            raise AttributeError("rho-component is only valid for 2D or 3D vectors.")
+        return self.components[0]
+    
+    @rho.setter
+    def rho(self, value: Union[float, int, torch.Tensor]):
+        """Set the rho (radial distance from the z-axi) component of the vector (Cylindrical)."""
+        if self.system != 'cylindrical':
+            raise AttributeError("rho-component is only valid for Cylindrical system.")
+        if self.dim < 2:
+            raise AttributeError("rho-component is only valid for 2D or 3D vectors.")
+        self._set_component(0, value)
+    
+    @property
+    def phi(self) -> torch.Tensor:
+        """Get the phi component of the vector (Cylindrical or Spherical or Polar)."""
+        if self.system not in ('cylindrical', 'spherical', 'polar'):
+            raise AttributeError("phi-component is only valid for Cylindrical, Spherical and Polar systems.")
+        if self.dim < 2:
+            raise AttributeError("phi-component is only valid for 2D or 3D vectors.")
+        return self.components[1]
+    
+    @phi.setter
+    def phi(self, value:  Union[float, int, torch.Tensor]):
+        """Set the phi component of the vector (Cylindrical or Spherical or Polar)."""
+        if self.system not in ('cylindrical', 'spherical', 'polar'):
+            raise AttributeError("phi-component is only valid for Cylindrical, Spherical and Polar systems.")
+        if self.dim < 2:
+            raise AttributeError("phi-component is only valid for 2D or 3D vectors.")
+        self._set_component(1, value)
+    
+    @property
+    def theta(self) -> torch.Tensor:
+        """Get the theta component of the vector (Spherical)."""
+        if self.system != 'spherical':
+            raise AttributeError("theta-component is only valid for Spherical system.")
+        if self.dim < 3:
+            raise AttributeError("theta-component is only valid for 3D vectors.")
+        return self.components[2]
+    
+    @theta.setter
+    def theta(self, value:  Union[float, int, torch.Tensor]):
+        """Set the theta component of the vector (Spherical)."""
+        if self.system != 'spherical':
+            raise AttributeError("theta-component is only valid for Spherical system.")
+        if self.dim < 3:
+            raise AttributeError("theta-component is only valid for 3D vectors.")
+        self._set_component(2, value)
+    
+    @property
+    def r(self) -> torch.Tensor:
+        """Get the r (radius) component of the vector (Spherical or Polar)."""
+        if self.system not in ('spherical', 'polar'):
+            raise AttributeError("r-component is only valid for Spherical and Polar systems.")
+        return self.components[0]
+    
+    @r.setter
+    def r(self, value:  Union[float, int, torch.Tensor]):
+        """Set the r (radius) component of the vector (Spherical or Polar)."""
+        if self.system not in ('spherical', 'polar'):
+            raise AttributeError("r-component is only valid for Spherical and Polar systems.")
+        self._set_component(0, value)
+    
+    @property
+    def magnitude(self) -> torch.Tensor:
+        """Get the magnitude  (i.e. Euclidean norm) of the vector."""
+        if self.system == 'cartesian':
+            return torch.linalg.vector_norm(self.components, ord=2)
+        if self.system in ('spherical', 'polar'):
+            return self.r
+        if self.system == 'cylindrical':
+            return torch.sqrt(self.rho**2 + self.z**2)
+        raise AttributeError("magnitude cannot be computed for this system.")
+    
+    @magnitude.setter
+    def magnitude(self, mag):
+        """The vector magnitude (Euclidean norm)"""
+        self.scale(mag / self.magnitude)
+    
+    def _initialize_data(self, components: Optional[Union[torch.Tensor, ArrayLike, 'VectorBase', list, tuple]] = None):
+        """Initialize a vecto-like.
 
+        Parameters
+        ----------
+        components : array_like, optional
+            The coordinates to initialize the vector with.
 
+        Returns
+        -------
+        torch.Tensor
+            The initialized tensor representation of the vector.
+        """
+        if components is None:
+            # self.dim = self.dim if self.dim is not None else 3
+            return torch.zeros((self.dim,), dtype=DTYPE, device=self.device)
+        if isinstance(components, VectorBase):
+            data = components.data.clone()
+        elif isinstance(components, torch.Tensor):
+            data = components.clone().to(DTYPE).to(self.device)
+        else:
+            data = torch.as_tensor(components, dtype=DTYPE, device=self.device)
+            if self.dim is None:
+                self.dim = len(components)  # Infer dimension from the data if not specified
+        return data
+    
+    def _validate(self):
+        """Validate that the vector-like has the correct shape.
+
+        Raises
+        ------
+        ValueError
+            If the vector-like shape is not equal to `(self.dim,)`.
+        """
+        if self.data.shape != (self.dim,):
+            raise ValueError(f"Vector must have shape ({self.dim},), got {self.data.shape}.")
+    
+    def _set_component(self, index: int, value:  Union[float, int, torch.Tensor]):
+        """Set a component of the vector and maintain tensor properties."""
+        if not isinstance(value, (float, int, torch.Tensor)):
+            raise TypeError("Component value must be a float, int, or torch.Tensor.")
+        
+        value = torch.as_tensor(value, dtype=DTYPE, device=self.device)
+        if value.numel() != 1:  # Ensure it's a scalar value
+            raise ValueError("Component value must be a scalar.")
+        
+        new_components = self.components.clone().detach()  # Clone and detach to avoid modifying the original tensor
+        new_components[index] = value
+        self.components = new_components  # Use the components setter to properly update the data
+    
+    
 class Vertex(VectorBase):
     """A  vertex (or point) representation in 2D or 3D space.
 
@@ -393,7 +646,7 @@ class Direction(VectorBase):
         'spherical', or 'polar'. Default is 'cartesian'.
     """
     
-    def __init__(self, components=None, dim: int = None, system: str= 'cartesian'):
+    def __init__(self, components=None, dim: int = None, system: str = 'cartesian'):
         """
         Initialize a [`Direction`][pymagbot.math.spatial.primitives.Direction].
 
